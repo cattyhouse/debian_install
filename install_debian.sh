@@ -326,7 +326,7 @@ cat <<EOFGRUB > /etc/default/grub
 GRUB_DEFAULT=0
 GRUB_DISTRIBUTOR="Debian"
 GRUB_TIMEOUT=1
-GRUB_CMDLINE_LINUX_DEFAULT="quiet console=$console"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet console=$console zswap.enabled=0"
 GRUB_DISABLE_SUBMENU=y
 GRUB_DISABLE_RECOVERY=true
 GRUB_DISABLE_OS_PROBER=true
