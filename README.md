@@ -18,7 +18,7 @@ posix shell script to install debian in one go
 - dhcp on ethernet (with a note on how to set static ip after installation) for simplicity
 - static dns or via dhcp
 - apt Install-Recommends disabled
-- dpkg.conf and ucf.conf set to force confold to minimize interaction
+- /etc/dpkg.cfg and /etc/ucf.conf set to force confold to minimize interaction
 - zram enabled, zswap disabled
 - unattended-upgrades enabled
 - needrestart enabled and set to automode
