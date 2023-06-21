@@ -1,4 +1,4 @@
-# debian_install
+# what is this
 posix shell script to install debian in one go
 
 # depends
