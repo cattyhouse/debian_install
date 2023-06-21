@@ -19,6 +19,7 @@ posix shell script to install debian in one go
 - Install-Recommends disabled
 - dpkg.conf and ucf.conf force confold
 - zram enabled, zswap disabled
+- unattended-upgrades enabled
 - needrestart enabled and set to automode
 - enabled locale : en_US.UTF-8 C.UTF-8, default locale C.UTF-8
 - sshd : PasswordAuthentication no, do not AcceptEnv , Restart=always
@@ -34,9 +35,8 @@ posix shell script to install debian in one go
 
 # usage
 
-## edit install_debian.sh
 - boot the hardware with any recent linux distro
-- adjust parameters between `#### TODO IMPORTANT VARIABLE ####`
+- edit `install_debian.sh`, adjust parameters between `#### TODO IMPORTANT VARIABLE ####`
 - `pw=` and `ssh_pub=` must be changed to yours, read the comments in the script to generate
 - adjust other parameters based on your needs
 - run the script as root : `./install_debian.sh`
