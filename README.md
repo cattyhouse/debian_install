@@ -11,13 +11,14 @@ posix shell script to install debian in one go
 - filesystem : ext4/btrfs
 - bootloader : grub
 - hardware: virtual machine/real hardware
-- debian verison: bookworm (tested), testing, unstable
+- debian verison: bookworm (current stable), trixie (current testing)
 
 # sane defaults
+- just a base system with common commandline tools. GUI can be installed via apt afterwards
 - dhcp on ethernet
 - static dns or via dhcp
 - Install-Recommends disabled
-- dpkg.conf and ucf.conf force confold
+- dpkg.conf and ucf.conf set to force confold to minimize interaction
 - zram enabled, zswap disabled
 - unattended-upgrades enabled
 - needrestart enabled and set to automode
@@ -32,6 +33,7 @@ posix shell script to install debian in one go
 - initramfs set to dep for smaller size, compressed with zstd
 - linux-image-cloud kernel for virtual machine for smaller size 
 - btrfs-scrub timer enabled
+- btrfs compress with zstd with level 1 for speed
 
 # usage
 
