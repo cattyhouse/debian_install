@@ -236,6 +236,11 @@ PasswordAuthentication no
 PrintLastLog no
 EOFSSHD
 
+# make sshd silent if the vm is not in china
+if [ "$vm" = yes ] && [ "$is_in_china" != yes ] ; then
+    printf '%s\n' 'LogLevel QUIET' >> /etc/ssh/sshd_config
+fi
+
 # disable AcceptEnv
 sed -i -e '/^AcceptEnv/ s|^|#|' /etc/ssh/sshd_config
 
