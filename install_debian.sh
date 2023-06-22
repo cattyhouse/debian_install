@@ -16,7 +16,7 @@ set_var () {
     debian_suite="bookworm"
     tz_area="Asia"
     tz_city="Shanghai"
-    include="vim,zstd,file,dbus,curl,busybox,ca-certificates,debconf,psmisc,systemd-timesyncd,libpam-systemd,policykit-1,systemd-zram-generator,binutils,iptables,ipset,bat,fd-find,manpages,man-db,ncdu,ncurses-term,tmux,tree,wireguard-tools,initramfs-tools,dosfstools,locales,needrestart,ripgrep,openssh-server,openssh-client,rsync,unattended-upgrades,apt-listchanges,btrfs-progs,apt-file,jq" # select preinstalled packages
+    include="vim,zstd,file,dbus,curl,busybox,ca-certificates,debconf,psmisc,systemd-timesyncd,systemd-zram-generator,binutils,iptables,ipset,bat,fd-find,manpages,man-db,ncdu,ncurses-term,tmux,tree,wireguard-tools,initramfs-tools,dosfstools,locales,needrestart,ripgrep,openssh-server,openssh-client,rsync,unattended-upgrades,apt-listchanges,btrfs-progs,apt-file,jq" # select preinstalled packages
     exclude="ifupdown,isc-dhcp-client,isc-dhcp-common,vim-tiny,tasksel,tasksel-data,apt-utils,debconf-i18n" # remove useless packages from default profile
     mount_point="/mnt/debian_c7bN4b"
 
@@ -142,6 +142,22 @@ set_chroot () {
 chroot_mount_misc || exit 1
 chroot "$mount_point" /bin/sh -s <<EOFCHROOT
 . /etc/profile
+
+# apt sources
+cat <<EOFSOURCE > /etc/apt/sources.list
+deb https://deb.debian.org/debian/ $debian_suite main contrib non-free non-free-firmware
+deb https://deb.debian.org/debian/ ${debian_suite}-updates main contrib non-free non-free-firmware
+deb https://security.debian.org/debian-security/ ${debian_suite}-security main contrib non-free non-free-firmware
+EOFSOURCE
+
+cat <<EOFAPT > /etc/apt/apt.conf.d/99-no-recommends
+APT::Install-Recommends "0";
+APT::Install-Suggests "0";
+EOFAPT
+
+# update sources
+apt-get -qq update
+
 # fstab
 printf '%s\n' "$fstab_root" >> /etc/fstab
 [ "$is_efi" = "y" ] && printf '%s\n' "$fstab_efi" >> /etc/fstab
@@ -160,6 +176,10 @@ DHCP=yes
 #Gateway=192.168.1.1
 EOFNET
 
+# fix "systemd-networkd Could not set hostname: Permission denied" after reboot
+# https://github.com/systemd/systemd/issues/16656#issuecomment-669312766
+apt-get install -y policykit-1
+
 # hosts
 printf '%s\n' "127.0.0.1 $hostname" >> /etc/hosts
 
@@ -168,21 +188,6 @@ printf '%s\n' "$hostname" > /etc/hostname
 
 # alternatives
 update-alternatives --set editor /usr/bin/vim.basic
-
-# apt sources
-cat <<EOFSOURCE > /etc/apt/sources.list
-deb https://deb.debian.org/debian/ $debian_suite main contrib non-free non-free-firmware
-deb https://deb.debian.org/debian/ ${debian_suite}-updates main contrib non-free non-free-firmware
-deb https://security.debian.org/debian-security/ ${debian_suite}-security main contrib non-free non-free-firmware
-EOFSOURCE
-
-# update sources
-apt-get -qq update
-
-cat <<EOFAPT > /etc/apt/apt.conf.d/99-no-recommends
-APT::Install-Recommends "0";
-APT::Install-Suggests "0";
-EOFAPT
 
 # unattended-upgrades custom
 printf '%s\n' \
