@@ -174,6 +174,41 @@ printf '%s\n' "$fstab_root" >> /etc/fstab
 [ "$is_efi" = "y" ] && printf '%s\n' "$fstab_efi" >> /etc/fstab
 printf '%s\n' "tmpfs /tmp tmpfs defaults,nosuid,nodev,size=80% 0 0" >> /etc/fstab
 
+# btrfs scrub service and timer
+# from https://gitlab.archlinux.org/archlinux/packaging/packages/btrfs-progs/-/tree/main/
+if [ "$rootfs" = btrfs ] ; then
+cat <<EOFBTRFSSCRUBSERVICE > '/etc/systemd/system/btrfs-scrub@.service'
+[Unit]
+Description=Btrfs scrub on %f
+ConditionPathIsMountPoint=%f
+RequiresMountsFor=%f
+
+[Service]
+Nice=19
+IOSchedulingClass=idle
+KillSignal=SIGINT
+ExecStart=/usr/bin/btrfs scrub start -B %f
+EOFBTRFSSCRUBSERVICE
+
+cat <<EOFBTRFSSCRUBTIMER > '/etc/systemd/system/btrfs-scrub@.timer'
+[Unit]
+Description=Monthly Btrfs scrub on %f
+
+[Timer]
+OnCalendar=monthly
+AccuracySec=1d
+RandomizedDelaySec=1w
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOFBTRFSSCRUBTIMER
+
+# "systemd-escape -p /" to resolve the path for root
+systemctl enable 'btrfs-scrub@-.timer'
+
+fi
+
 # network
 cat <<EOFNET > /etc/systemd/network/eth.network
 [Match]
@@ -186,10 +221,6 @@ DHCP=yes
 #Address=192.168.1.10/24
 #Gateway=192.168.1.1
 EOFNET
-
-# fix "systemd-networkd Could not set hostname: Permission denied" after reboot
-# https://github.com/systemd/systemd/issues/16656#issuecomment-669312766
-apt-get install -y policykit-1
 
 # hosts
 printf '%s\n' "127.0.0.1 $hostname" >> /etc/hosts
@@ -205,9 +236,6 @@ printf '%s\n' \
 'Unattended-Upgrade::OnlyOnACPower "false";' \
 'Unattended-Upgrade::Skip-Updates-On-Metered-Connections "false";' \
 > /etc/apt/apt.conf.d/99unattended-upgrades-custom
-
-# fix warning of /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
-apt-get install -y python3-gi
 
 
 # zstd on zram 
@@ -264,6 +292,14 @@ sed -i 's|^UMASK.*|UMASK 077|' /etc/login.defs
 
 # disable motd from debian
 sed -i -e '/pam_motd.so/ s|^|#|' /etc/pam.d/login /etc/pam.d/sshd
+
+# disable ssh-keygen comment
+for file in /etc/ssh/ssh_host_* ; do
+    case "\$file" in
+        (*.pub) : ;;
+        (*) ssh-keygen -c -C "" -f "\$file" >/dev/null 2>&1 ;;
+    esac
+done
 
 # ntp servers
 if [ "$is_in_china" = yes ] ; then
@@ -392,51 +428,15 @@ fi
 
 update-grub2
 
+# fix "systemd-networkd Could not set hostname: Permission denied" after reboot
+# https://github.com/systemd/systemd/issues/16656#issuecomment-669312766
+apt-get install -y policykit-1
+
+# fix warning of /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+apt-get install -y python3-gi
+
 # clean cache
 apt-get autoremove -y --purge && apt-get clean
-
-# disable ssh-keygen comment
-for file in /etc/ssh/ssh_host_* ; do
-    case "\$file" in
-        (*.pub) : ;;
-        (*) ssh-keygen -c -C "" -f "\$file" >/dev/null 2>&1 ;;
-    esac
-done
-
-# btrfs scrub service and timer
-# from https://gitlab.archlinux.org/archlinux/packaging/packages/btrfs-progs/-/tree/main/
-if [ "$rootfs" = btrfs ] ; then
-cat <<EOFBTRFSSCRUBSERVICE > '/etc/systemd/system/btrfs-scrub@.service'
-[Unit]
-Description=Btrfs scrub on %f
-ConditionPathIsMountPoint=%f
-RequiresMountsFor=%f
-
-[Service]
-Nice=19
-IOSchedulingClass=idle
-KillSignal=SIGINT
-ExecStart=/usr/bin/btrfs scrub start -B %f
-EOFBTRFSSCRUBSERVICE
-
-cat <<EOFBTRFSSCRUBTIMER > '/etc/systemd/system/btrfs-scrub@.timer'
-[Unit]
-Description=Monthly Btrfs scrub on %f
-
-[Timer]
-OnCalendar=monthly
-AccuracySec=1d
-RandomizedDelaySec=1w
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-EOFBTRFSSCRUBTIMER
-
-# "systemd-escape -p /" to resolve the path for root
-systemctl enable 'btrfs-scrub@-.timer'
-
-fi
 
 # disable services
 systemctl disable rsync
