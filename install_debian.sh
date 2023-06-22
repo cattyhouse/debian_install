@@ -155,6 +155,17 @@ APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 EOFAPT
 
+# ucf.conf dpkg.cfg
+printf '%s\n' "conf_force_conffold=YES" >> /etc/ucf.conf
+printf '%s\n' "force-confold" >> /etc/dpkg/dpkg.cfg
+
+# needrestart.conf
+cat <<'EOFNR' > /etc/needrestart/conf.d/99.zzz.conf
+\$nrconf{restart} = 'a';
+\$nrconf{kernelhints} = -1;
+\$nrconf{ucodehints} = 0;
+EOFNR
+
 # update sources
 apt-get -qq update
 
@@ -199,23 +210,12 @@ printf '%s\n' \
 apt-get install -y python3-gi
 
 
-# ucf.conf dpkg.cfg
-printf '%s\n' "conf_force_conffold=YES" >> /etc/ucf.conf
-printf '%s\n' "force-confold" >> /etc/dpkg/dpkg.cfg
-
 # zstd on zram 
 cat <<EOFZRAM > /etc/systemd/zram-generator.conf
 [zram0]
 zram-size = ram / 2
 compression-algorithm = zstd
 EOFZRAM
-
-# needrestart.conf
-cat <<'EOFNR' > /etc/needrestart/conf.d/99.zzz.conf
-\$nrconf{restart} = 'a';
-\$nrconf{kernelhints} = -1;
-\$nrconf{ucodehints} = 0;
-EOFNR
 
 # locale
 # multiselect format: A, B, C
