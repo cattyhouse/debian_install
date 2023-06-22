@@ -16,7 +16,7 @@ set_var () {
     debian_suite="bookworm"
     tz_area="Asia"
     tz_city="Shanghai"
-    include="vim,zstd,file,dbus,curl,busybox,ca-certificates,debconf,psmisc,systemd-timesyncd,systemd-zram-generator,binutils,iptables,ipset,bat,fd-find,manpages,man-db,ncdu,ncurses-term,tmux,tree,wireguard-tools,initramfs-tools,dosfstools,locales,needrestart,ripgrep,openssh-server,openssh-client,rsync,unattended-upgrades,apt-listchanges,btrfs-progs,apt-file,jq" # select preinstalled packages
+    include="vim,zstd,file,dbus,dbus-user-session,curl,busybox,ca-certificates,debconf,psmisc,systemd-timesyncd,systemd-zram-generator,binutils,iptables,ipset,bat,fd-find,manpages,man-db,ncdu,ncurses-term,tmux,tree,wireguard-tools,initramfs-tools,dosfstools,locales,needrestart,ripgrep,openssh-server,openssh-client,rsync,unattended-upgrades,apt-listchanges,btrfs-progs,apt-file,jq" # select preinstalled packages
     exclude="ifupdown,isc-dhcp-client,isc-dhcp-common,vim-tiny,tasksel,tasksel-data,apt-utils,debconf-i18n" # remove useless packages from default profile
     mount_point="/mnt/debian_c7bN4b"
 
