@@ -176,10 +176,23 @@ deb https://deb.debian.org/debian/ ${debian_suite}-updates main contrib non-free
 deb https://security.debian.org/debian-security/ ${debian_suite}-security main contrib non-free non-free-firmware
 EOFSOURCE
 
+# update sources
+apt-get -qq update
+
 cat <<EOFAPT > /etc/apt/apt.conf.d/99-no-recommends
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 EOFAPT
+
+# unattended-upgrades custom
+printf '%s\n' \
+'Unattended-Upgrade::OnlyOnACPower "false";' \
+'Unattended-Upgrade::Skip-Updates-On-Metered-Connections "false";' \
+> /etc/apt/apt.conf.d/99unattended-upgrades-custom
+
+# fix warning of /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+apt-get install -y python3-gi
+
 
 # ucf.conf dpkg.cfg
 printf '%s\n' "conf_force_conffold=YES" >> /etc/ucf.conf
@@ -359,9 +372,6 @@ EOFINIT
 if [ "$rootfs" = btrfs ] ; then
     printf '%s\n' 'zstd' 'btrfs' >> /etc/initramfs-tools/modules
 fi
-
-# update sources
-apt-get -qq update
 
 # kernel
 if [ "$vm" = yes ] ; then
