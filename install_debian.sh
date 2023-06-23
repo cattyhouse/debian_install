@@ -16,8 +16,7 @@ set_var () {
     debian_suite="bookworm"
     tz_area="Asia"
     tz_city="Shanghai"
-    include="vim,zstd,file,dbus,dbus-user-session,curl,busybox,ca-certificates,debconf,psmisc,systemd-timesyncd,systemd-zram-generator,binutils,iptables,ipset,bat,fd-find,manpages,manpages-dev,man-db,ncdu,ncurses-term,tmux,tree,wireguard-tools,initramfs-tools,dosfstools,locales,needrestart,ripgrep,openssh-server,openssh-client,rsync,unattended-upgrades,apt-listchanges,btrfs-progs,apt-file,jq" # select preinstalled packages
-    exclude="ifupdown,isc-dhcp-client,isc-dhcp-common,vim-tiny,tasksel,tasksel-data,apt-utils,debconf-i18n" # remove useless packages from default profile
+    pkgs="apt-file bat binutils btrfs-progs busybox ca-certificates cron cron-daemon-common curl dbus dbus-user-session debconf dosfstools fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart openssh-client openssh-server procps psmisc ripgrep rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree ucf unattended-upgrades vim wireguard-tools zstd" # select preinstalled packages
     mount_point="/mnt/debian_c7bN4b"
 
     #### TODO IMPORTANT VARIABLE ####
@@ -32,7 +31,7 @@ set_var () {
     
     # systemd-resolved or not
     if [ "$autodns" = yes ] ; then
-        include="$include,systemd-resolved"
+        pkgs="$pkgs systemd-resolved"
     fi
     
     # check efi
@@ -45,9 +44,9 @@ set_var () {
             (*/) die "efi_dir must NOT end with /" ;;
             (/boot) die "efi_dir must NOT be /boot on debian" ;;
         esac
-        include="$include,grub-efi"
+        pkgs="$pkgs grub-efi"
     else
-        include="$include,grub-pc"
+        pkgs="$pkgs grub-pc"
     fi
     
     # set mirror for debootstrap
@@ -118,10 +117,11 @@ set_rootfs () {
     export DEBOOTSTRAP_DIR="$ds_dir/debootstrap-master"
     
     # prepare rootfs
-    "$DEBOOTSTRAP_DIR"/debootstrap --no-check-gpg --arch="$host_arch" --exclude="$exclude" --include="$include" "$debian_suite" "$mount_point" "$deb_mirror" || die "failed to run debootstrap"
+    "$DEBOOTSTRAP_DIR"/debootstrap --no-check-gpg --arch="$host_arch" --variant=minbase "$debian_suite" "$mount_point" "$deb_mirror" || die "failed to run debootstrap"
     sleep 5
     rm -f "$mount_point"/etc/resolv.conf
     cat /etc/resolv.conf > "$mount_point"/etc/resolv.conf
+    cat /etc/resolv.conf > "$mount_point"/etc/resolv.conf.bk
 }
 
 chroot_mount_misc () (
@@ -150,6 +150,16 @@ deb https://deb.debian.org/debian/ ${debian_suite}-updates main contrib non-free
 deb https://security.debian.org/debian-security/ ${debian_suite}-security main contrib non-free non-free-firmware
 EOFSOURCE
 
+# update sources
+apt-get -qq update
+
+# install packages
+apt-get install -qq -y --no-install-recommends $pkgs
+
+# restore resolv.conf due to systemd-resolvd
+rm -f /etc/resolv.conf
+mv /etc/resolv.conf.bk /etc/resolv.conf
+
 cat <<EOFAPT > /etc/apt/apt.conf.d/99-no-recommends
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
@@ -165,9 +175,6 @@ cat <<'EOFNR' > /etc/needrestart/conf.d/99.zzz.conf
 \$nrconf{kernelhints} = -1;
 \$nrconf{ucodehints} = 0;
 EOFNR
-
-# update sources
-apt-get -qq update
 
 # fstab
 printf '%s\n' "$fstab_root" >> /etc/fstab
@@ -424,10 +431,6 @@ else
 fi
 
 update-grub2
-
-# fix "systemd-networkd Could not set hostname: Permission denied" after reboot
-# https://github.com/systemd/systemd/issues/16656#issuecomment-669312766
-apt-get install -y policykit-1
 
 # fix warning of /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
 apt-get install -y python3-gi
