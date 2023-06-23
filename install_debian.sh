@@ -16,7 +16,7 @@ set_var () {
     debian_suite="bookworm"
     tz_area="Asia"
     tz_city="Shanghai"
-    pkgs="apt-file bat binutils busybox ca-certificates cron cron-daemon-common curl dbus dbus-user-session debconf dosfstools fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart openssh-client openssh-server procps psmisc ripgrep rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree ucf unattended-upgrades vim wireguard-tools zstd" # select preinstalled packages
+    pkgs="apt-file bat binutils busybox ca-certificates cron cron-daemon-common curl dbus dbus-user-session debconf dosfstools fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc ripgrep rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree ucf unattended-upgrades vim wireguard-tools zstd" # select preinstalled packages
     mount_point="/mnt/debian_c7bN4b"
 
     #### TODO IMPORTANT VARIABLE ####
