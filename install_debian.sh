@@ -243,6 +243,9 @@ update-alternatives --set editor /usr/bin/vim.basic
 printf '%s\n' \
 'Unattended-Upgrade::OnlyOnACPower "false";' \
 'Unattended-Upgrade::Skip-Updates-On-Metered-Connections "false";' \
+'APT::Periodic::Update-Package-Lists "always";' \
+'APT::Periodic::Unattended-Upgrade "always";' \
+'APT::Periodic::CleanInterval "always";' \
 > /etc/apt/apt.conf.d/99unattended-upgrades-custom
 
 
