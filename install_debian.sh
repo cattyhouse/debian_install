@@ -13,10 +13,10 @@ set_var () {
     efi_size="64M" # 1) at least 40M 2) 64M is a good enough
     pw='$6$6uBlduKtkwiJw7wY$IaZKonJKpI.cN5/0c.vRuXnztBWPUfI5B9VYYEGddzmrrNMiYsmdVxzu5JzpnsTxEuiEo95JoF3V9c4BccXgI0' # must be in single quote to prevent shell expansion. generate by : echo 'your_password' | mkpasswd -m sha-512 -s
     ssh_pub='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBJLSxzI5IVEHV7NXo7k2arm3fo756ouGNSywQbx1IOk' # generate by ssh-keygen or get existing one from: head -n1 ~/.ssh/authorized_keys
-    debian_suite="bookworm"
+    debian_suite="bookworm" # bookworm or trixie. the latest stable or testing codename, note that unstable/sid is not supported by debian-security
     tz_area="Asia"
     tz_city="Shanghai"
-    pkgs="apt-file bat binutils busybox ca-certificates cron cron-daemon-common curl dbus dbus-user-session debconf dosfstools fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc ripgrep rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree ucf unattended-upgrades vim wireguard-tools zstd" # select preinstalled packages
+    pkgs="apt-file bat binutils busybox ca-certificates cron cron-daemon-common curl dbus dbus-user-session debconf fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree ucf unattended-upgrades vim wireguard-tools zstd" # select preinstalled packages
     mount_point="/mnt/debian_c7bN4b"
 
     #### TODO IMPORTANT VARIABLE ####
@@ -37,6 +37,7 @@ set_var () {
     # check efi
     is_efi=""
     if [ -d /sys/firmware/efi/efivars ] ; then
+        check_cmd mkfs.fat
         is_efi="y"
         # validate efi_dir
         case "$efi_dir" in
@@ -44,7 +45,7 @@ set_var () {
             (*/) die "efi_dir must NOT end with /" ;;
             (/boot) die "efi_dir must NOT be /boot on debian" ;;
         esac
-        pkgs="$pkgs grub-efi"
+        pkgs="$pkgs grub-efi dosfstools"
     else
         pkgs="$pkgs grub-pc"
     fi
@@ -58,18 +59,17 @@ set_var () {
 }
 
 set_mount () {
-    sfdisk -ql "$dev" >/dev/null 2>&1 || die "$dev does not exist"
-    mount | grep -q "$dev" && die "$dev is mounted, please umount it"
-    mount | grep -q "$mount_point" && die "$mount_point is mounted to other devices, please umount it or set a different mount_point"
-    
     case "$rootfs" in
         (ext4)
+            check_cmd mkfs.ext4
             mkfs_opt="mkfs.ext4 -qFF"
             mount_opt=""
             fstab_opt="ext4 rw,relatime 0 1"
+            pkgs="$pkgs e2fsprogs"
         ;;
 
         (btrfs)
+            check_cmd mkfs.btrfs
             modprobe btrfs 2>/dev/null
             mkfs_opt="mkfs.btrfs -qf"
             mount_opt="-o compress=zstd:1"
@@ -82,7 +82,11 @@ set_mount () {
         ;;
     esac
 
-    mkdir -p "$mount_point"
+    sfdisk -ql "$dev" >/dev/null 2>&1 || die "$dev does not exist"
+    mount | grep -q "$dev" && die "$dev is mounted, please umount it"
+    mount | grep -q "$mount_point" && die "$mount_point is mounted to other devices, please umount it or set a different mount_point"
+
+    mkdir -p "$mount_point" || die "failed to create dir : $mount_point"
     if [ "$is_efi" = "y" ] ; then
         printf '%s\n' "label:gpt" "size=$efi_size,type=uefi" "type=linux" |
         sfdisk -q -w always -W always "$dev" || die "failed to sfdisk $dev"
@@ -91,7 +95,7 @@ set_mount () {
         mkfs.fat -F 32 "${dev}1" || die "failed to mkfs ${dev}1"
         $mkfs_opt "${dev}2" || die "failed to mkfs.$rootfs ${dev}2"
         mount $mount_opt "${dev}2" "$mount_point" || die "failed to mount ${dev}2"
-        mkdir -p "$mount_point$efi_dir" 
+        mkdir -p "$mount_point$efi_dir" || die "failed to create dir : $mount_point$efi_dir"
         mount "${dev}1" "$mount_point$efi_dir" || die "failed to mount ${dev}1"
         uuid_efi="$(blkid -o value -s UUID ${dev}1)"
         uuid_root="$(blkid -o value -s UUID ${dev}2)"
@@ -486,28 +490,35 @@ cleanup () {
     sync
 }
 
-export LANG=C
-export LC_ALL=C
+check_root () {
+    [ "$(id -u)" = 0 ] || die "please run as root/sudo/doas"
+}
 
-[ "$(id -u)" = 0 ] || die "please run as root/sudo/doas"
+fix_alpine () {
+    if command -v apk > /dev/null ; then
+        # busybox mdev has bugs, use mdevd instead
+        setup-devd mdevd > /dev/null 2>&1
+    fi
+}
 
-if command -v apk > /dev/null ; then
-    hwclock -s
-    #setup-interfaces -a > /dev/null
-    #rc-service networking restart > /dev/null
-    #setup-apkrepos -1
-    setup-devd mdevd > /dev/null 2>&1 # busybox mdev has bugs, use mdevd instead
-    apk add -q curl tar xz util-linux util-linux-misc dosfstools e2fsprogs e2fsprogs-extra perl rsync binutils btrfs-progs
-fi
+fix_clock () {
+    # some distro, alpine virt for instance, clock is not synced on boot
+    hwclock -s >/dev/null 2>&1
+}
 
 check_network () {
     curl --connect-timeout 5 -m 10 -sfI https://deb.debian.org >/dev/null 2>&1 || die "please check your network"
 }
 
-deps="wget curl tar xz gzip sfdisk mkfs.fat mkfs.ext4 mount blkid perl ar mkfs.btrfs btrfs"
 # real job
+deps="wget curl tar xz gzip sfdisk mount blkid perl ar"
+export LANG=C
+export LC_ALL=C
+check_root
 check_cmd $deps
+fix_clock
 check_network
+fix_alpine
 set_var
 set_mount
 set_rootfs
