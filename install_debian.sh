@@ -7,7 +7,7 @@ set_var () {
     vm="yes" # set to "yes" for vm/vps. "no" for real hardware
     hostname="debian"
     dev="/dev/vda" # which drive to install to
-    rootfs="ext4" # btrfs or ext4
+    rootfs="btrfs" # btrfs or ext4
     autodns="no" # if yes, then install and enable systemd-resolved. if no, then use 223.5.5.5 119.29.29.29 for china, 1.1.1.1 8.8.8.8 for others
     efi_dir="/efi" # 1) good example : "/esp", "/efi", "/boot/efi" 2) NOT used if UEFI firmware NOT detected
     efi_size="64M" # 1) at least 40M 2) 64M is a good enough
