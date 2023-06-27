@@ -8,7 +8,7 @@ set_var () {
     hostname="debian"
     dev="/dev/vda" # which drive to install to
     rootfs="btrfs" # btrfs or ext4
-    autodns="no" # if yes, then install and enable systemd-resolved. if no, then use 223.5.5.5 119.29.29.29 for china, 1.1.1.1 8.8.8.8 for others
+    autodns="no" # if yes, then install and enable systemd-resolved. if no, then use 119.29.29.29 for china, 1.1.1.1 for others
     efi_dir="/efi" # 1) good example : "/esp", "/efi", "/boot/efi" 2) NOT used if UEFI firmware NOT detected
     efi_size="64M" # 1) at least 40M 2) 64M is a good enough
     pw='$6$6uBlduKtkwiJw7wY$IaZKonJKpI.cN5/0c.vRuXnztBWPUfI5B9VYYEGddzmrrNMiYsmdVxzu5JzpnsTxEuiEo95JoF3V9c4BccXgI0' # must be in single quote to prevent shell expansion. generate by : echo 'your_password' | mkpasswd -m sha-512 -s
@@ -460,9 +460,9 @@ if [ "$autodns" = yes ] ; then
 else
     systemctl disable systemd-resolved 2>/dev/null # in case this is auto installed by debootstrap
     if [ "$is_in_china" = yes ] ; then
-        printf '%s\n' "nameserver 223.5.5.5" "nameserver 119.29.29.29" > /etc/resolv.conf
+        printf '%s\n' "nameserver 119.29.29.29" > /etc/resolv.conf
     else
-        printf '%s\n' "nameserver 1.1.1.1" "nameserver 8.8.8.8" > /etc/resolv.conf
+        printf '%s\n' "nameserver 1.1.1.1" > /etc/resolv.conf
     fi
 fi
 
