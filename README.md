@@ -125,6 +125,23 @@ aptrmoldkernel () {
 - each package may have a postinst shell script, rsync for example: `/var/lib/dpkg/info/rsync.postinst`. when dpkg --configure is called, `deb-systemd-helper enable` is call in the script, thus the service is enabled. to see a rough list of enabled services `fd -p postinst /var/lib/dpkg -X grep 'deb-systemd-helper enable'`
 - you may need to run `systemctl disable NAME.service` if you don't want it to run on boot
 
+> how do list all enabled services and timers
+- enabled services and timers are usually symlinked to the `*.target.wants` directory, so we can use find to list them all and sort by type.
+
+```sh
+find \
+/usr/lib/systemd \
+/etc/systemd \
+/run/systemd \
+-type l \
+-regextype posix-extended \
+-iregex ".*target\.wants.*\.(timer|service)$" \
+-printf '%f\n' |
+sort -t. -k2 |
+uniq |
+less
+```
+
 > how does unattended-upgrades work
 - `apt-daily.timer` runs `apt-daily.service` on a schedule. then `/usr/lib/apt/apt.systemd.daily update` is run, this will call `apt-get update` and `unattended-upgrades --download-only` to refresh the metadata and download packages if any.
 
