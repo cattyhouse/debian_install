@@ -49,10 +49,10 @@ posix shell script to install debian in one go
 ```sh
 debdiff () {
     # fd 3 is used to get rid of "Vim: Warning: Input is not from a terminal"
-    while read -u 3 -r ; do
+    while read -u 3 -r -d '' ; do
         vim -d "$REPLY" "${REPLY%.*}"
         rm -i "$REPLY"
-    done 3< <(find /etc/ -regextype posix-extended -iregex ".+\.(dpkg-|ucf-).+" -print)
+    done 3< <(find /etc/ -regextype posix-extended -iregex ".+\.(dpkg-|ucf-).+" -print0)
 }
 ```
 - aptu : upgrade
@@ -119,3 +119,15 @@ aptrmoldkernel () {
     fi
 }
 ```
+
+# debian Q&A
+> why is the service enabled automatically
+- each package may have a postinst shell script, rsync for example: `/var/lib/dpkg/info/rsync.postinst`. when dpkg --configure is called, `deb-systemd-helper enable` is call in the script, thus the service is enabled.
+- you may need to run `systemctl disable NAME.service` if you don't want it to run on boot
+
+> how does unattended-upgrades work
+- `apt-daily.timer` runs `apt-daily.service` on a schedule. then `/usr/lib/apt/apt.systemd.daily update` is run, this will call `apt-get update` and `unattended-upgrades --download-only` to refresh the metadata and download packages if any.
+
+- `apt-daily-upgrade.timer` runs `apt-daily-upgrade.service` on a schedule. then `/usr/lib/apt/apt.systemd.daily install` is run, this will call `unattended-upgrades` to install downloaded packages if any
+- also there are some options as decribed in `/usr/lib/apt/apt.systemd.daily`, it controls how often `unattended-upgrades` gets run. by default it is eveyday but there are some offsets. it is better to set `APT::Periodic::Unattended-Upgrade "always"`, so it is controlled solely by the `apt-daily.timer` and `apt-daily-upgrade.timer`
+- timer can also be customized using, e.g. `systemctl edit apt-daily.timer`
