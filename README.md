@@ -122,7 +122,7 @@ aptrmoldkernel () {
 
 # debian Q&A
 > why is the service enabled automatically
-- each package may have a postinst shell script, rsync for example: `/var/lib/dpkg/info/rsync.postinst`. when dpkg --configure is called, `deb-systemd-helper enable` is call in the script, thus the service is enabled. to see a rough list of enabled services `fd -p postinst /var/lib/dpkg -X grep 'deb-systemd-helper enable'`
+- each package may have a postinst shell script, rsync for example: `/var/lib/dpkg/info/rsync.postinst`. when dpkg --configure is called, `deb-systemd-helper enable` is called in the script, thus the service is enabled. to see a rough list of **debian** enabled services `fd -p postinst /var/lib/dpkg -X grep 'deb-systemd-helper enable'`
 - you may need to run `systemctl disable NAME.service` if you don't want it to run on boot
 
 > how do list all enabled services and timers
