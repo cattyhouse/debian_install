@@ -72,8 +72,8 @@ set_mount () {
             check_cmd mkfs.btrfs
             modprobe btrfs 2>/dev/null
             mkfs_opt="mkfs.btrfs -qf"
-            mount_opt="-o autodefrag,compress=zstd:1"
-            fstab_opt="btrfs autodefrag,compress=zstd:1 0 0"
+            mount_opt="-o compress=zstd:1"
+            fstab_opt="btrfs compress=zstd:1 0 0"
             pkgs="$pkgs btrfs-progs btrfs-compsize"
         ;;
         
@@ -185,41 +185,6 @@ EOFNR
 printf '%s\n' "$fstab_root" >> /etc/fstab
 [ "$is_efi" = "y" ] && printf '%s\n' "$fstab_efi" >> /etc/fstab
 printf '%s\n' "tmpfs /tmp tmpfs defaults,nosuid,nodev,size=80% 0 0" >> /etc/fstab
-
-# btrfs scrub service and timer
-# from https://gitlab.archlinux.org/archlinux/packaging/packages/btrfs-progs/-/tree/main/
-if [ "$rootfs" = btrfs ] ; then
-cat <<EOFBTRFSSCRUBSERVICE > '/etc/systemd/system/btrfs-scrub@.service'
-[Unit]
-Description=Btrfs scrub on %f
-ConditionPathIsMountPoint=%f
-RequiresMountsFor=%f
-
-[Service]
-Nice=19
-IOSchedulingClass=idle
-KillSignal=SIGINT
-ExecStart=/usr/bin/btrfs scrub start -B %f
-EOFBTRFSSCRUBSERVICE
-
-cat <<EOFBTRFSSCRUBTIMER > '/etc/systemd/system/btrfs-scrub@.timer'
-[Unit]
-Description=Monthly Btrfs scrub on %f
-
-[Timer]
-OnCalendar=monthly
-AccuracySec=1d
-RandomizedDelaySec=1w
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-EOFBTRFSSCRUBTIMER
-
-# "systemd-escape -p /" to resolve the path for root
-systemctl enable 'btrfs-scrub@-.timer'
-
-fi
 
 # network
 cat <<EOFNET > /etc/systemd/network/eth.network
