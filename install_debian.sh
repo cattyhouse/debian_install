@@ -72,9 +72,9 @@ set_mount () {
             check_cmd mkfs.btrfs
             modprobe btrfs 2>/dev/null
             mkfs_opt="mkfs.btrfs -qf"
-            mount_opt="-o compress=zstd:1"
-            fstab_opt="btrfs compress=zstd:1 0 0"
-            pkgs="$pkgs btrfs-progs"
+            mount_opt="-o autodefrag,compress=zstd:1"
+            fstab_opt="btrfs autodefrag,compress=zstd:1 0 0"
+            pkgs="$pkgs btrfs-progs btrfs-compsize"
         ;;
         
         (*)
