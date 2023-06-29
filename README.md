@@ -149,14 +149,16 @@ less
 - also there are some options as decribed in `/usr/lib/apt/apt.systemd.daily`, it controls how often `unattended-upgrades` gets run. by default it is eveyday but there are some offsets. it is better to set `APT::Periodic::Unattended-Upgrade "always"`, so it is controlled solely by the `apt-daily.timer` and `apt-daily-upgrade.timer`
 - timer can also be customized using, e.g. `systemctl edit apt-daily.timer`
 
-## how to enable btrfs compress and autodefrag afterwards
+## enable btrfs compress
 
-- edit /etc/fstab, prepare for remount
+> compress must be enabled on mount before new data written. but what if it was not mounted with compress option?
+
+- edit /etc/fstab, prepare for remount. if `compress=zstd:1` is not present, add it
 ```
-UUID=... / btrfs autodefrag,compress=zstd:1 0 0
+UUID=... / btrfs compress=zstd:1 0 0
 ```
 
-- defrag the whole root
+- defrag the whole root with `-czstd`
 ```
 btrfs -v filesystem defrag -r -czstd -f /
 ```
@@ -166,6 +168,27 @@ systemctl daemon-reload
 mount -a -o remount
 ```
 - check
+```sh
+mount | grep btrfs # check mount options
+compsize -x / # check overall compress ratio
 ```
-mount | grep btrfs
+
+## free btrfs space
+- check usage first
+```sh
+btrfs fi df / # notice total=
+btrfs fi us / # notice Device unallocated:
+```
+- free unused metadata and data by btrfs balance
+```sh
+target=
+while read -r target ; do
+    btrfs -v balance start -musage=80 -dusage=80 "$target"
+done < <(findmnt -n -t btrfs -o TARGET)
+```
+- check usage after
+
+```sh
+btrfs fi df / # should see less total= size
+btrfs fi us / # should see more in Device unallocated:
 ```
