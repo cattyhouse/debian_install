@@ -121,11 +121,11 @@ aptrmoldkernel () {
 ```
 
 # debian Q&A
-> why is the service enabled automatically
+## why is the service enabled automatically
 - each package may have a postinst shell script, rsync for example: `/var/lib/dpkg/info/rsync.postinst`. when dpkg --configure is called, `deb-systemd-helper enable` is called in the script, thus the service is enabled. to see a rough list of **debian** enabled services `fd -p postinst /var/lib/dpkg -X grep 'deb-systemd-helper enable'`
 - you may need to run `systemctl disable NAME.service` if you don't want it to run on boot
 
-> how to list all enabled services and timers
+## how to list all enabled services and timers
 - enabled services and timers are usually symlinked to the `*.target.wants` directory, so we can use find to list them all and sort by type.
 
 ```sh
@@ -142,7 +142,7 @@ uniq |
 less
 ```
 
-> how does unattended-upgrades work
+## how does unattended-upgrades work
 - `apt-daily.timer` runs `apt-daily.service` on a schedule. then `/usr/lib/apt/apt.systemd.daily update` is run, this will call `apt-get update` and `unattended-upgrades --download-only` to refresh the metadata and download packages if any.
 
 - `apt-daily-upgrade.timer` runs `apt-daily-upgrade.service` on a schedule. then `/usr/lib/apt/apt.systemd.daily install` is run, this will call `unattended-upgrades` to install downloaded packages if any
