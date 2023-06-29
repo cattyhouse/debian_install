@@ -148,3 +148,24 @@ less
 - `apt-daily-upgrade.timer` runs `apt-daily-upgrade.service` on a schedule. then `/usr/lib/apt/apt.systemd.daily install` is run, this will call `unattended-upgrades` to install downloaded packages if any
 - also there are some options as decribed in `/usr/lib/apt/apt.systemd.daily`, it controls how often `unattended-upgrades` gets run. by default it is eveyday but there are some offsets. it is better to set `APT::Periodic::Unattended-Upgrade "always"`, so it is controlled solely by the `apt-daily.timer` and `apt-daily-upgrade.timer`
 - timer can also be customized using, e.g. `systemctl edit apt-daily.timer`
+
+## how to enable btrfs compress and autodefrag afterwards
+
+- edit /etc/fstab, prepare for remount
+```
+UUID=... / btrfs autodefrag,compress=zstd:1 0 0
+```
+
+- defrag the whole root
+```
+btrfs -v filesystem defrag -r -czstd -f /
+```
+- remount
+```
+systemctl daemon-reload
+mount -a -o remount
+```
+- check
+```
+mount | grep btrfs
+```
