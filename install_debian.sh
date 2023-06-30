@@ -16,7 +16,7 @@ set_var () {
     debian_suite="bookworm" # bookworm or trixie. the latest stable or testing codename, note that unstable/sid is not supported by debian-security
     tz_area="Asia"
     tz_city="Shanghai"
-    pkgs="apt-file bat bc binutils busybox ca-certificates cron cron-daemon-common curl dbus dbus-user-session debconf fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree ucf unattended-upgrades vim whiptail wireguard-tools zstd" # select preinstalled packages
+    pkgs="apt-file bat bc busybox ca-certificates cron cron-daemon-common curl dbus dbus-user-session fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree unattended-upgrades vim whiptail wireguard-tools zstd" # select preinstalled packages
     mount_point="/mnt/debian_c7bN4b"
 
     #### TODO IMPORTANT VARIABLE ####
