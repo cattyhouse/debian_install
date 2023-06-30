@@ -179,6 +179,7 @@ cat <<'EOFNR' > /etc/needrestart/conf.d/99.zzz.conf
 \$nrconf{restart} = 'a';
 \$nrconf{kernelhints} = -1;
 \$nrconf{ucodehints} = 0;
+\$nrconf{verbosity} = 0;
 EOFNR
 
 # fstab
