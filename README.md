@@ -192,3 +192,21 @@ done < <(findmnt -n -t btrfs -o TARGET)
 btrfs fi df / # should see less total= size
 btrfs fi us / # should see more in Device unallocated:
 ```
+
+## pipe cron output to journald
+
+> debian's cron, by default send output to mail only, if there is no mail agent installed, it outputs a warning like `CRON:  (CRON) info (No MTA installed, discarding output)`, there is no option to send output to somewhere else. however we still can do something, `crontab -e` will be like this:
+
+```sh
+MAILTO="" # set MAILTO="" to not send any mail, makes that "No MTA installed ..." message gone
+
+# pipe output to systemd-cat and it will be send to journald
+# use journalctl -g KEYWORD to search, KEYWORD is the tag that systemd-cat uses.
+
+# send stdout only
+* * * * * echo "test" | systemd-cat -t cron.test
+# send stderr only, in this case, 2>&1 must be before >/dev/null
+* * * * * curl something 2>&1 >/dev/null | systemc-cat -t cron.curl
+# send both stdout and stderr
+* * * * * osbackup 2>&1 | systemd-cat -t cron.osbackup
+```
