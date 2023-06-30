@@ -412,7 +412,7 @@ apt-get install -y python3-gi
 apt-get autoremove -y --purge && apt-get clean
 
 # disable services
-systemctl disable rsync
+systemctl disable rsync.service e2scrub_reap.service e2scrub_all.timer
 
 # enable services
 systemctl enable ssh systemd-networkd systemd-timesyncd
