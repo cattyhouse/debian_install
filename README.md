@@ -181,13 +181,10 @@ btrfs fi us / # notice Device unallocated:
 ```
 - free unused metadata and data by btrfs balance
 ```sh
-target=
-findmnt -n -t btrfs -o TARGET |
+findmnt -n -l -t btrfs -o TARGET |
 while read -r target ; do
-    btrfs -v balance start -musage=0 "$target"
-    btrfs -v balance start -dusage=0 "$target"
-    btrfs -v balance start -musage=5..30 "$target"
-    btrfs -v balance start -dusage=5..30 "$target"
+    btrfs -v balance start -musage=0 -dusage=0 "$target"
+    btrfs -v balance start -musage=5..50 -dusage=5..50 "$target"
 done
 ```
 - check usage after
