@@ -156,13 +156,13 @@ deb https://security.debian.org/debian-security/ ${debian_suite}-security main c
 EOFSOURCE
 
 # update sources
-apt-get -qq update
+apt-get update
 
 # install packages
-apt-get install -qq -y --no-install-recommends $pkgs
+apt-get install -q -d -y --no-install-recommends $pkgs
+apt-get install -q -y --no-install-recommends $pkgs
 
 # restore resolv.conf due to systemd-resolvd
-rm -f /etc/resolv.conf
 mv /etc/resolv.conf.bk /etc/resolv.conf
 
 cat <<EOFAPT > /etc/apt/apt.conf.d/99-no-recommends
@@ -172,7 +172,7 @@ EOFAPT
 
 # ucf.conf dpkg.cfg
 printf '%s\n' "conf_force_conffold=YES" >> /etc/ucf.conf
-printf '%s\n' "force-confold" >> /etc/dpkg/dpkg.cfg
+printf '%s\n' "force-confold" "force-confmiss" >> /etc/dpkg/dpkg.cfg
 
 # needrestart.conf
 cat <<'EOFNR' > /etc/needrestart/conf.d/99.zzz.conf
