@@ -287,24 +287,6 @@ NTP=ntp.aliyun.com ntp1.aliyun.com time1.cloud.tencent.com time2.cloud.tencent.c
 EOFNTP
 fi
 
-# limit
-cat <<EOFSD >> /etc/systemd/system.conf
-
-DefaultLimitNOFILE=5242880
-DefaultLimitNPROC=infinity
-DefaultLimitCORE=infinity
-EOFSD
-
-cat <<EOFULIMIT >> /etc/security/limits.conf
-
-* - nofile 5242880
-* - nproc unlimited
-* - core unlimited
-root - nofile 5242880
-root - nproc unlimited
-root - core unlimited
-EOFULIMIT
-
 # sysctl
 mkdir -p /etc/sysctl.d
 cat <<EOFSYSCTL > /etc/sysctl.d/99.zzz.conf
