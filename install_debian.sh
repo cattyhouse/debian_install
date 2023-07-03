@@ -87,12 +87,12 @@ set_mount () {
     mount | grep -q "$mount_point" && die "$mount_point is mounted to other devices, please umount it or set a different mount_point"
 
     mkdir -p "$mount_point" || die "failed to create dir : $mount_point"
-    wipefs -q -a "$dev"*
+    wipefs -q -a -f $(blkid --output device ${dev}* | tr '\n' ' ')
     if [ "$is_efi" = "y" ] ; then
         printf '%s\n' "label:gpt" "size=$efi_size,type=uefi" "type=linux" |
         sfdisk -q "$dev" || die "failed to sfdisk $dev"
         sleep 1 # wait for device init after partition
-        devp=$(blkid --output device "$dev"?* | head -n1 | sed 's|.$||')
+        devp=$(blkid --output device "$dev"?* | head -n1) ; devp=${devp%?}
         
         mkfs.fat -F 32 "${devp}1" || die "failed to mkfs ${devp}1"
         $mkfs_opt "${devp}2" || die "failed to mkfs.$rootfs ${devp}2"
@@ -108,7 +108,7 @@ set_mount () {
         printf '%s\n' "label:gpt" 'size=1M,type="bios boot"' "type=linux" |
         sfdisk -q "$dev" || die "failed to sfdisk $dev"
         sleep 1 # wait for device init after partition
-        devp=$(blkid --output device "$dev"?* | head -n1 | sed 's|.$||')
+        devp=$(blkid --output device "$dev"?* | head -n1) ; devp=${devp%?}
 
         $mkfs_opt "${devp}2" || die "failed to mkfs.$rootfs ${devp}2"
         mount $mount_opt "${devp}2" "$mount_point" || die "failed to mount ${devp}2"
@@ -462,7 +462,7 @@ check_network () {
 }
 
 # real job
-deps="wget curl tar xz gzip sfdisk mount blkid perl ar sed wipefs"
+deps="wget curl tar xz gzip sfdisk mount blkid perl ar wipefs"
 export LANG=C
 export LC_ALL=C
 check_root
