@@ -461,7 +461,7 @@ check_network () {
 }
 
 # real job
-deps="wget curl tar xz gzip sfdisk mount blkid perl ar"
+deps="wget curl tar xz gzip sfdisk mount blkid perl ar sed"
 export LANG=C
 export LC_ALL=C
 check_root
