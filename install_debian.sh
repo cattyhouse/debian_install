@@ -87,9 +87,10 @@ set_mount () {
     mount | grep -q "$mount_point" && die "$mount_point is mounted to other devices, please umount it or set a different mount_point"
 
     mkdir -p "$mount_point" || die "failed to create dir : $mount_point"
+    wipefs -q -a "$dev"*
     if [ "$is_efi" = "y" ] ; then
         printf '%s\n' "label:gpt" "size=$efi_size,type=uefi" "type=linux" |
-        sfdisk -q -w always -W always "$dev" || die "failed to sfdisk $dev"
+        sfdisk -q "$dev" || die "failed to sfdisk $dev"
         sleep 1 # wait for device init after partition
         devp=$(blkid --output device "$dev"?* | head -n1 | sed 's|.$||')
         
@@ -105,7 +106,7 @@ set_mount () {
     else
         # gpt + bios boot partition
         printf '%s\n' "label:gpt" 'size=1M,type="bios boot"' "type=linux" |
-        sfdisk -q -w always -W always "$dev" || die "failed to sfdisk $dev"
+        sfdisk -q "$dev" || die "failed to sfdisk $dev"
         sleep 1 # wait for device init after partition
         devp=$(blkid --output device "$dev"?* | head -n1 | sed 's|.$||')
 
@@ -461,7 +462,7 @@ check_network () {
 }
 
 # real job
-deps="wget curl tar xz gzip sfdisk mount blkid perl ar sed"
+deps="wget curl tar xz gzip sfdisk mount blkid perl ar sed wipefs"
 export LANG=C
 export LC_ALL=C
 check_root
