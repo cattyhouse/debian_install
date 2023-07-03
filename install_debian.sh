@@ -9,7 +9,7 @@ set_var () {
     dev="/dev/vda" # which drive to install to
     rootfs="btrfs" # btrfs or ext4
     autodns="no" # if yes, then install and enable systemd-resolved. if no, then use 119.29.29.29 for china, 1.1.1.1 for others
-    efi_dir="/efi" # 1) good example : "/esp", "/efi", "/boot/efi" 2) NOT used if UEFI firmware NOT detected
+    efi_dir="/boot/efi" # 1) good example : "/esp", "/efi", "/boot/efi" 2) NOT used if UEFI firmware NOT detected
     efi_size="64M" # 1) at least 40M 2) 64M is a good enough
     pw='$6$6uBlduKtkwiJw7wY$IaZKonJKpI.cN5/0c.vRuXnztBWPUfI5B9VYYEGddzmrrNMiYsmdVxzu5JzpnsTxEuiEo95JoF3V9c4BccXgI0' # must be in single quote to prevent shell expansion. generate by : echo 'your_password' | mkpasswd -m sha-512 -s
     ssh_pub='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBJLSxzI5IVEHV7NXo7k2arm3fo756ouGNSywQbx1IOk' # generate by ssh-keygen or get existing one from: head -n1 ~/.ssh/authorized_keys
@@ -91,14 +91,15 @@ set_mount () {
         printf '%s\n' "label:gpt" "size=$efi_size,type=uefi" "type=linux" |
         sfdisk -q -w always -W always "$dev" || die "failed to sfdisk $dev"
         sleep 1 # wait for device init after partition
+        devp=$(blkid --output device "$dev"?* | head -n1 | sed 's|.$||')
         
-        mkfs.fat -F 32 "${dev}1" || die "failed to mkfs ${dev}1"
-        $mkfs_opt "${dev}2" || die "failed to mkfs.$rootfs ${dev}2"
-        mount $mount_opt "${dev}2" "$mount_point" || die "failed to mount ${dev}2"
+        mkfs.fat -F 32 "${devp}1" || die "failed to mkfs ${devp}1"
+        $mkfs_opt "${devp}2" || die "failed to mkfs.$rootfs ${devp}2"
+        mount $mount_opt "${devp}2" "$mount_point" || die "failed to mount ${devp}2"
         mkdir -p "$mount_point$efi_dir" || die "failed to create dir : $mount_point$efi_dir"
-        mount "${dev}1" "$mount_point$efi_dir" || die "failed to mount ${dev}1"
-        uuid_efi="$(blkid -o value -s UUID ${dev}1)"
-        uuid_root="$(blkid -o value -s UUID ${dev}2)"
+        mount "${devp}1" "$mount_point$efi_dir" || die "failed to mount ${devp}1"
+        uuid_efi="$(blkid -o value -s UUID ${devp}1)"
+        uuid_root="$(blkid -o value -s UUID ${devp}2)"
         fstab_efi="UUID=$uuid_efi $efi_dir vfat rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=utf8,shortname=mixed,errors=remount-ro 0 2"
         fstab_root="UUID=$uuid_root / $fstab_opt"
     else
@@ -106,10 +107,11 @@ set_mount () {
         printf '%s\n' "label:gpt" 'size=1M,type="bios boot"' "type=linux" |
         sfdisk -q -w always -W always "$dev" || die "failed to sfdisk $dev"
         sleep 1 # wait for device init after partition
+        devp=$(blkid --output device "$dev"?* | head -n1 | sed 's|.$||')
 
-        $mkfs_opt "${dev}2" || die "failed to mkfs.$rootfs ${dev}2"
-        mount $mount_opt "${dev}2" "$mount_point" || die "failed to mount ${dev}2"
-        uuid_root="$(blkid -o value -s UUID ${dev}2)"
+        $mkfs_opt "${devp}2" || die "failed to mkfs.$rootfs ${devp}2"
+        mount $mount_opt "${devp}2" "$mount_point" || die "failed to mount ${devp}2"
+        uuid_root="$(blkid -o value -s UUID ${devp}2)"
         fstab_root="UUID=$uuid_root / $fstab_opt"
     fi
 }
