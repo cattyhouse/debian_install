@@ -6,7 +6,7 @@ set_var () {
     is_in_china="no" # set to "yes" if the computer to be installed is located in china. otherwise set to "no"
     is_vm="yes" # set to "yes" for vm/vps. "no" for real hardware
     hostname="debian"
-    dev="/dev/vda" # which drive to install to
+    dev="/dev/vda" # which drive to install to, use lsblk to find it
     rootfs="btrfs" # btrfs or ext4
     autodns="no" # if yes, then install and enable systemd-resolved. if no, then use 119.29.29.29 for china, 1.1.1.1 for others
     efi_dir="/boot/efi" # 1) good example : "/esp", "/efi", "/boot/efi" 2) NOT used if UEFI firmware NOT detected
