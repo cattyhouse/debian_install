@@ -93,15 +93,15 @@ set_mount () {
         printf '%s\n' "label:gpt" "size=$efi_size,type=uefi" "type=linux" |
         sfdisk -q "$dev" || die "failed to sfdisk $dev"
         sleep 1 # wait for device init after partition
-        devp=$(blkid --output device "$dev"?* | head -n1) ; devp=${devp%?}
+        devp=$(lsblk -n -o PATH "$dev" | tail -n1) ; devp=${devp%?}
         
         mkfs.fat -F 32 "${devp}1" || die "failed to mkfs ${devp}1"
         $mkfs_opt "${devp}2" || die "failed to mkfs.$rootfs ${devp}2"
         mount $mount_opt "${devp}2" "$mount_point" || die "failed to mount ${devp}2"
         mkdir -p "$mount_point$efi_dir" || die "failed to create dir : $mount_point$efi_dir"
         mount "${devp}1" "$mount_point$efi_dir" || die "failed to mount ${devp}1"
-        uuid_efi="$(blkid -o value -s UUID ${devp}1)"
-        uuid_root="$(blkid -o value -s UUID ${devp}2)"
+        uuid_efi="$(lsblk -n -o UUID ${devp}1)"
+        uuid_root="$(lsblk -n -o UUID ${devp}2)"
         fstab_efi="UUID=$uuid_efi $efi_dir vfat rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=utf8,shortname=mixed,errors=remount-ro 0 2"
         fstab_root="UUID=$uuid_root / $fstab_opt"
     else
@@ -109,11 +109,11 @@ set_mount () {
         printf '%s\n' "label:gpt" 'size=1M,type="bios boot"' "type=linux" |
         sfdisk -q "$dev" || die "failed to sfdisk $dev"
         sleep 1 # wait for device init after partition
-        devp=$(blkid --output device "$dev"?* | head -n1) ; devp=${devp%?}
+        devp=$(lsblk -n -o PATH "$dev" | tail -n1) ; devp=${devp%?}
 
         $mkfs_opt "${devp}2" || die "failed to mkfs.$rootfs ${devp}2"
         mount $mount_opt "${devp}2" "$mount_point" || die "failed to mount ${devp}2"
-        uuid_root="$(blkid -o value -s UUID ${devp}2)"
+        uuid_root="$(lsblk -n -o UUID ${devp}2)"
         fstab_root="UUID=$uuid_root / $fstab_opt"
     fi
 }
@@ -463,7 +463,7 @@ check_network () {
 }
 
 # real job
-deps="wget curl tar xz gzip sfdisk mount blkid lsblk mountpoint perl ar wipefs"
+deps="wget curl tar xz gzip sfdisk mount lsblk mountpoint perl ar wipefs"
 export LANG=C
 export LC_ALL=C
 check_root
