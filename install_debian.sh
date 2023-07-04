@@ -88,7 +88,7 @@ set_mount () {
     mountpoint -q "$mount_point" && die "$mount_point is mounted, please run 'umount -vfRl $mount_point' to umount it or set another mount_point"
 
     mkdir -p "$mount_point" || die "failed to create dir : $mount_point"
-    wipefs -q -a -f $(blkid --output device ${dev}* | tr '\n' ' ')
+    wipefs -q -a -f $(lsblk -n -o PATH "$dev")
     if [ "$is_efi" = "y" ] ; then
         printf '%s\n' "label:gpt" "size=$efi_size,type=uefi" "type=linux" |
         sfdisk -q "$dev" || die "failed to sfdisk $dev"
