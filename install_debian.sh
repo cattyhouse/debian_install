@@ -4,7 +4,7 @@ set_var () {
     #### TODO IMPORTANT VARIABLE ####
 
     is_in_china="no" # set to "yes" if the computer to be installed is located in china. otherwise set to "no"
-    vm="yes" # set to "yes" for vm/vps. "no" for real hardware
+    is_vm="yes" # set to "yes" for vm/vps. "no" for real hardware
     hostname="debian"
     dev="/dev/vda" # which drive to install to
     rootfs="btrfs" # btrfs or ext4
@@ -83,8 +83,9 @@ set_mount () {
     esac
 
     sfdisk -ql "$dev" >/dev/null 2>&1 || die "$dev does not exist"
-    mount | grep -q "$dev" && die "$dev is mounted, please umount it"
-    mount | grep -q "$mount_point" && die "$mount_point is mounted to other devices, please umount it or set a different mount_point"
+    [ "$(lsblk -n -d -o MAJ:MIN "$dev" | cut -d: -f2)" -eq 0 ] || die "$dev is a parition. Expect a disk"
+    [ "$(lsblk -n -o MOUNTPOINTS "$dev")" ] && die "$dev is mounted, please umount it"
+    mountpoint -q "$mount_point" && die "$mount_point is mounted, please run 'umount -vfRl $mount_point' to umount it or set another mount_point"
 
     mkdir -p "$mount_point" || die "failed to create dir : $mount_point"
     wipefs -q -a -f $(blkid --output device ${dev}* | tr '\n' ' ')
@@ -383,7 +384,7 @@ if [ "$rootfs" = btrfs ] ; then
 fi
 
 # kernel
-if [ "$vm" = yes ] ; then
+if [ "$is_vm" = yes ] ; then
     apt-get -y install linux-image-cloud-$host_arch
 else
     apt-get -y install linux-image-$host_arch
@@ -462,7 +463,7 @@ check_network () {
 }
 
 # real job
-deps="wget curl tar xz gzip sfdisk mount blkid perl ar wipefs"
+deps="wget curl tar xz gzip sfdisk mount blkid lsblk mountpoint perl ar wipefs"
 export LANG=C
 export LC_ALL=C
 check_root
