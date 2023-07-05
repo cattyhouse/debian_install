@@ -284,6 +284,9 @@ sed -i 's|^UMASK.*|UMASK 077|' /etc/login.defs
 # disable motd from debian
 sed -i -e '/pam_motd.so/ s|^|#|' /etc/pam.d/login /etc/pam.d/sshd
 
+# disable deprecated user_readenv (man pam_env)
+sed -i '/pam_env.so/ s|user_readenv=1|user_readenv=0|' /etc/pam.d/sshd
+
 # disable ssh-keygen comment
 for file in /etc/ssh/ssh_host_* ; do
     case "\$file" in
