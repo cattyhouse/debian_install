@@ -25,7 +25,7 @@ posix shell script to install debian in one go
 - enabled locale : en_US.UTF-8 and C.UTF-8, default locale :  C.UTF-8
 - sshd : `PasswordAuthentication` set to `no`, do not `AcceptEnv` , `Restart=always`
 - useradd new user home permission : 700
-- limits : nofile set to 5242880, nproc and core set to unlimited
+- ~~limits : nofile set to 5242880, nproc and core set to unlimited~~
 - sysctl.conf : tuned towards performance
 - installed fd-find and bat, symlinked to /usr/local/bin as fd and bat
 - downloaded netbootxyz to /boot(BIOS) or ESP(UEFI) for recovery purpose, read more about how to use it from their official website
