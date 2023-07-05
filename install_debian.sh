@@ -82,10 +82,21 @@ set_mount () {
         ;;
     esac
 
-    sfdisk -ql "$dev" >/dev/null 2>&1 || die "$dev does not exist"
-    [ "$(lsblk -n -d -o MAJ:MIN "$dev" | cut -d: -f2)" -eq 0 ] || die "$dev is a parition. Expect a disk"
-    [ "$(lsblk -n -o MOUNTPOINTS "$dev")" ] && die "$dev is mounted, please umount it"
-    mountpoint -q "$mount_point" && die "$mount_point is mounted, please run 'umount -vfRl $mount_point' to umount it or set another mount_point"
+    # fix mount: (hint) your fstab has been modified, but systemd still uses the old version; use 'systemctl daemon-reload' to reload
+    command -v systemctl >/dev/null && systemctl daemon-reload || true
+    # dev has to be a disk
+    [ "$(lsblk -n -d -o TYPE "$dev" 2>/dev/null)" = disk ] || die "$dev is not a disk, please check option dev="
+    # dev can't be mounted
+    if [ "$(lsblk -n -o MOUNTPOINTS "$dev")" ] ; then
+        printf '%s\n' "$dev is mounted :" "$(lsblk -o PATH,MOUNTPOINTS "$dev")"
+        die "please umount it based on above information"
+    fi
+    # mount_point can't be in use
+    if mountpoint -q "$mount_point" ; then
+        die "$mount_point is mounted" \
+        "please run 'umount -vfR $mount_point' to umount them all" \
+        "or set another mount_point="
+    fi
 
     mkdir -p "$mount_point" || die "failed to create dir : $mount_point"
     wipefs -q -a -f $(lsblk -n -o PATH "$dev")
@@ -100,8 +111,8 @@ set_mount () {
         mount $mount_opt "${devp}2" "$mount_point" || die "failed to mount ${devp}2"
         mkdir -p "$mount_point$efi_dir" || die "failed to create dir : $mount_point$efi_dir"
         mount "${devp}1" "$mount_point$efi_dir" || die "failed to mount ${devp}1"
-        uuid_efi="$(lsblk -n -o UUID ${devp}1)"
-        uuid_root="$(lsblk -n -o UUID ${devp}2)"
+        uuid_efi="$(lsblk -n -o UUID "${devp}1")"
+        uuid_root="$(lsblk -n -o UUID "${devp}2")"
         fstab_efi="UUID=$uuid_efi $efi_dir vfat rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=utf8,shortname=mixed,errors=remount-ro 0 2"
         fstab_root="UUID=$uuid_root / $fstab_opt"
     else
@@ -113,7 +124,7 @@ set_mount () {
 
         $mkfs_opt "${devp}2" || die "failed to mkfs.$rootfs ${devp}2"
         mount $mount_opt "${devp}2" "$mount_point" || die "failed to mount ${devp}2"
-        uuid_root="$(lsblk -n -o UUID ${devp}2)"
+        uuid_root="$(lsblk -n -o UUID "${devp}2")"
         fstab_root="UUID=$uuid_root / $fstab_opt"
     fi
 }
