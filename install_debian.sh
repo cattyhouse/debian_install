@@ -243,20 +243,18 @@ EOFZRAM
 
 # locale
 # multiselect format: A, B, C
-rm -f /etc/default/locale /etc/locale.gen
 printf '%s\n' \
 "locales locales/default_environment_locale select C.UTF-8" \
 "locales locales/locales_to_be_generated multiselect en_US.UTF-8 UTF-8" |
 debconf-set-selections
-dpkg-reconfigure -f noninteractive locales
+dpkg-reconfigure -f noninteractive --force locales
 
 # tzdata
-rm -f /etc/timezone /etc/localtime
 printf '%s\n' \
 "tzdata tzdata/Areas select $tz_area" \
 "tzdata tzdata/Zones/$tz_area select $tz_city" |
 debconf-set-selections
-dpkg-reconfigure -f noninteractive tzdata
+dpkg-reconfigure -f noninteractive --force tzdata
 
 # sshd
 cat <<EOFSSHD >> /etc/ssh/sshd_config
