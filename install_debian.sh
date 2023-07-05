@@ -440,7 +440,7 @@ check_cmd () {
     local missing=0 cmd
     for cmd do
         command -v "$cmd" >/dev/null ||
-        { printf '%s\n' "$cmd not found, please install related package that provides $cmd" ; missing=1 ; }
+        { printf '\033[31mERR: \033[0m%s\n' "$cmd not found, please install related package that provides $cmd" ; missing=1 ; }
     done
     [ "$missing" = 1 ] && exit 1
 }
