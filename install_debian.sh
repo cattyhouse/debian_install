@@ -98,7 +98,7 @@ set_mount () {
     fi
 
     mkdir -p "$mount_point" || die "failed to create dir : $mount_point"
-    wipefs -q -a -f $(lsblk -n -o PATH "$dev")
+    for _wipefs_ in 1 2 3 ; do wipefs -q -a -f $(lsblk -n -o PATH "$dev") ; done # wipe 3 times
     if [ "$is_efi" = "y" ] ; then
         printf '%s\n' "label:gpt" "size=$efi_size,type=uefi" "type=linux" |
         sfdisk -q "$dev" || die "failed to sfdisk $dev"
