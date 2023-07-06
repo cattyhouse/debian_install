@@ -14,8 +14,7 @@ set_var () {
     pw='$6$6uBlduKtkwiJw7wY$IaZKonJKpI.cN5/0c.vRuXnztBWPUfI5B9VYYEGddzmrrNMiYsmdVxzu5JzpnsTxEuiEo95JoF3V9c4BccXgI0' # must be in single quote to prevent shell expansion. generate by : echo 'your_password' | mkpasswd -m sha-512 -s
     ssh_pub='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBJLSxzI5IVEHV7NXo7k2arm3fo756ouGNSywQbx1IOk' # generate by ssh-keygen or get existing one from: head -n1 ~/.ssh/authorized_keys
     debian_suite="bookworm" # supported: by code name:  bookworm | trixie | sid  OR  by branch : stable | testing | unstable . code name is preferred
-    tz_area="Asia"
-    tz_city="Shanghai"
+    timezone="Asia/Shanghai"
     pkgs="apt-file bat bc busybox ca-certificates cron cron-daemon-common curl dbus dbus-user-session fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree unattended-upgrades vim whiptail wireguard-tools zstd" # select preinstalled packages
     mount_point="/mnt/debian_c7bN4b"
 
@@ -245,20 +244,14 @@ compression-algorithm = zstd
 EOFZRAM
 
 # locale
-# multiselect format: A, B, C
-rm -f /etc/default/locale /etc/locale.gen
-printf '%s\n' \
-"locales locales/default_environment_locale select C.UTF-8" \
-"locales locales/locales_to_be_generated multiselect en_US.UTF-8 UTF-8" |
-debconf-set-selections
+# based on code in dpkg-query --control-show locales config
+printf '%s\n' 'en_US.UTF-8 UTF-8' > /etc/locale.gen
+printf '%s\n' 'LANG=C.UTF-8' > /etc/default/locale
 dpkg-reconfigure -f noninteractive locales
 
-# tzdata
-rm -f /etc/localtime /etc/timezone
-printf '%s\n' \
-"tzdata tzdata/Areas select $tz_area" \
-"tzdata tzdata/Zones/$tz_area select $tz_city" |
-debconf-set-selections
+# timezone
+# based on code in dpkg-query --control-show tzdata config
+ln -sf /usr/share/zoneinfo/$timezone /etc/localtime
 dpkg-reconfigure -f noninteractive tzdata
 
 # sshd
