@@ -245,7 +245,7 @@ EOFZRAM
 
 # locale
 # based on code in dpkg-query --control-show locales config
-printf '%s\n' 'en_US.UTF-8 UTF-8' > /etc/locale.gen
+printf '%s\n' 'en_US.UTF-8 UTF-8' 'C.UTF-8 UTF-8' > /etc/locale.gen
 printf '%s\n' 'LANG=C.UTF-8' > /etc/default/locale
 dpkg-reconfigure -f noninteractive locales
 
