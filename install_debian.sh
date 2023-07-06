@@ -13,7 +13,7 @@ set_var () {
     efi_size="64M" # 1) at least 40M 2) 64M is a good enough
     pw='$6$6uBlduKtkwiJw7wY$IaZKonJKpI.cN5/0c.vRuXnztBWPUfI5B9VYYEGddzmrrNMiYsmdVxzu5JzpnsTxEuiEo95JoF3V9c4BccXgI0' # must be in single quote to prevent shell expansion. generate by : echo 'your_password' | mkpasswd -m sha-512 -s
     ssh_pub='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBJLSxzI5IVEHV7NXo7k2arm3fo756ouGNSywQbx1IOk' # generate by ssh-keygen or get existing one from: head -n1 ~/.ssh/authorized_keys
-    debian_suite="bookworm" # bookworm or trixie. the latest stable or testing codename, note that unstable/sid is not supported by debian-security
+    debian_suite="bookworm" # supported: by code name:  bookworm | trixie | sid  OR  by branch : stable | testing | unstable . code name is preferred
     tz_area="Asia"
     tz_city="Shanghai"
     pkgs="apt-file bat bc busybox ca-certificates cron cron-daemon-common curl dbus dbus-user-session fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree unattended-upgrades vim whiptail wireguard-tools zstd" # select preinstalled packages
@@ -89,7 +89,7 @@ set_mount () {
     # dev can't be mounted
     if [ "$(lsblk -n -o MOUNTPOINTS "$dev")" ] ; then
         printf '%s\n' "$dev is mounted :" "$(lsblk -o PATH,MOUNTPOINTS "$dev")"
-        die "please umount it based on above information"
+        die "please run 'umount -vfR MOUNTPOINTS' based on above information"
     fi
     # mount_point can't be in use
     if mountpoint -q "$mount_point" ; then
@@ -164,11 +164,14 @@ chroot "$mount_point" /bin/sh -s <<EOFCHROOT
 . /etc/profile
 
 # apt sources
-cat <<EOFSOURCE > /etc/apt/sources.list
-deb https://deb.debian.org/debian/ $debian_suite main contrib non-free non-free-firmware
-deb https://deb.debian.org/debian/ ${debian_suite}-updates main contrib non-free non-free-firmware
-deb https://security.debian.org/debian-security/ ${debian_suite}-security main contrib non-free non-free-firmware
-EOFSOURCE
+_comp="main contrib non-free non-free-firmware"
+_deburl="https://deb.debian.org/debian/"
+_securl="https://security.debian.org/debian-security/"
+printf '%s\n' "deb \$_deburl $debian_suite \$_comp" > /etc/apt/sources.list
+case $debian_suite in
+    (unstable|sid) : ;;
+    (*) printf '%s\n' "deb \$_deburl ${debian_suite}-updates \$_comp" "deb \$_securl ${debian_suite}-security \$_comp" >> /etc/apt/sources.list ;;
+esac
 
 # update sources
 apt-get update
@@ -243,18 +246,20 @@ EOFZRAM
 
 # locale
 # multiselect format: A, B, C
+rm -f /etc/default/locale /etc/locale.gen
 printf '%s\n' \
 "locales locales/default_environment_locale select C.UTF-8" \
 "locales locales/locales_to_be_generated multiselect en_US.UTF-8 UTF-8" |
 debconf-set-selections
-dpkg-reconfigure -f noninteractive --force locales
+dpkg-reconfigure -f noninteractive locales
 
 # tzdata
+rm -f /etc/localtime /etc/timezone
 printf '%s\n' \
 "tzdata tzdata/Areas select $tz_area" \
 "tzdata tzdata/Zones/$tz_area select $tz_city" |
 debconf-set-selections
-dpkg-reconfigure -f noninteractive --force tzdata
+dpkg-reconfigure -f noninteractive tzdata
 
 # sshd
 cat <<EOFSSHD >> /etc/ssh/sshd_config
