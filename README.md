@@ -211,3 +211,46 @@ MAILTO="" # set MAILTO="" to not send any mail, makes that "No MTA installed ...
 # send both stdout and stderr
 * * * * * osbackup 2>&1 | systemd-cat -t cron.osbackup
 ```
+
+## multi network priority
+> below configs specify higher ethernet priority than that of wi-fi
+
+> smaller metric means higher priority. defaults to 1024 if unspecified
+
+> once specified, must specify all .network configs
+
+- dhcp
+    - ethernet.network
+    ```ini
+    ...
+    [DHCPv4]
+    RouteMetric=10
+    ...
+    ```
+    - wi-fi.network
+    ```ini
+    ...
+    [DHCPv4]
+    RouteMetric=20
+    ...
+- static
+    - ethernet.network
+    ```ini
+    ...
+    [Address]
+    Address=...
+    RouteMetric=10
+    ...
+    ```
+    - wi-fi.network
+    ```ini
+    ...
+    [Address]
+    Address=...
+    RouteMetric=20
+    ...
+
+- check
+    ```
+    ip -c a
+    ```
