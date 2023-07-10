@@ -50,11 +50,7 @@ set_var () {
     fi
     
     # set mirror for debootstrap
-    if [ "$is_in_china" = yes ] ; then
-        deb_mirror="https://mirrors.bfsu.edu.cn/debian/"
-    else
-        deb_mirror="https://ftp.debian.org/debian/"
-    fi
+    deb_mirror="https://deb.debian.org/debian/"
 }
 
 set_mount () {
@@ -179,7 +175,7 @@ apt-get update
 apt-get install -q -d -y --no-install-recommends $pkgs
 apt-get install -q -y --no-install-recommends $pkgs
 
-# restore resolv.conf due to systemd-resolvd
+# restore resolv.conf due to systemd-resolved
 mv /etc/resolv.conf.bk /etc/resolv.conf
 
 cat <<EOFAPT > /etc/apt/apt.conf.d/99-no-recommends
@@ -476,6 +472,7 @@ check_network () {
 deps="wget curl tar xz gzip sfdisk mount lsblk mountpoint perl ar wipefs"
 export LANG=C
 export LC_ALL=C
+export DEBIAN_FRONTEND=noninteractive
 check_root
 check_cmd $deps
 fix_clock
