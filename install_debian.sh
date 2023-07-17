@@ -15,7 +15,7 @@ set_var () {
     ssh_pub='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBJLSxzI5IVEHV7NXo7k2arm3fo756ouGNSywQbx1IOk' # generate by ssh-keygen or get existing one from: head -n1 ~/.ssh/authorized_keys
     debian_suite="bookworm" # supported: by code name:  bookworm | trixie | sid  OR  by branch : stable | testing | unstable . code name is preferred
     timezone="Asia/Shanghai"
-    pkgs="apt-file bat bc busybox ca-certificates cron cron-daemon-common curl dbus dbus-user-session fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree unattended-upgrades vim whiptail wireguard-tools zstd" # select preinstalled packages
+    pkgs="apt-file bat bc ca-certificates cron cron-daemon-common curl dbus dbus-user-session fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree unattended-upgrades vim whiptail wireguard-tools zstd" # select preinstalled packages
     mount_point="/mnt/debian_c7bN4b"
 
     #### TODO IMPORTANT VARIABLE ####
