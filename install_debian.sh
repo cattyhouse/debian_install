@@ -232,17 +232,17 @@ printf '%s\n' \
 > /etc/apt/apt.conf.d/99unattended-upgrades-custom
 
 # download timer
-cat <<DOWNTIMEREOF | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-daily.timer.d/override.conf
+cat <<EOFDOWNTIMER | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-daily.timer.d/override.conf
 [Timer]
 RandomizedDelaySec=1h
-DOWNTIMEREOF
+EOFDOWNTIMER
 
 # install timer
-cat <<INSTALLTIMEREOF | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-daily-upgrade.timer.d/override.conf
+cat <<EOFINSTALLTIMER | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-daily-upgrade.timer.d/override.conf
 [Timer]
 OnCalendar=
 OnCalendar=09,20:00
-INSTALLTIMEREOF
+EOFINSTALLTIMER
 
 # zstd on zram 
 cat <<EOFZRAM > /etc/systemd/zram-generator.conf
