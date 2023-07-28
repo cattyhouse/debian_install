@@ -244,6 +244,7 @@ cat <<EOFINSTALLTIMER | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-da
 [Timer]
 OnCalendar=
 OnCalendar=07,19:00
+RandomizedDelaySec=1h
 EOFINSTALLTIMER
 
 # zstd on zram 
