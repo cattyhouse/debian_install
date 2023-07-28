@@ -234,6 +234,8 @@ printf '%s\n' \
 # download timer
 cat <<EOFDOWNTIMER | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-daily.timer.d/override.conf
 [Timer]
+OnCalendar=
+OnCalendar=06,18:00
 RandomizedDelaySec=1h
 EOFDOWNTIMER
 
