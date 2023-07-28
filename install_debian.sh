@@ -241,7 +241,7 @@ EOFDOWNTIMER
 cat <<EOFINSTALLTIMER | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-daily-upgrade.timer.d/override.conf
 [Timer]
 OnCalendar=
-OnCalendar=09,20:00
+OnCalendar=08,19:00
 EOFINSTALLTIMER
 
 # zstd on zram 
