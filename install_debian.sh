@@ -9,7 +9,6 @@ set_var () {
     dev="/dev/vda" # which drive to install to, use lsblk to find it
     rootfs="btrfs" # btrfs or ext4
     autodns="no" # if yes, then install and enable systemd-resolved. if no, then use 119.29.29.29 for china, 1.1.1.1 for others
-    efi_dir="/boot/efi" # 1) good example : "/esp", "/efi", "/boot/efi" 2) NOT used if UEFI firmware NOT detected
     efi_size="64M" # 1) at least 40M 2) 64M is a good enough
     pw='$6$6uBlduKtkwiJw7wY$IaZKonJKpI.cN5/0c.vRuXnztBWPUfI5B9VYYEGddzmrrNMiYsmdVxzu5JzpnsTxEuiEo95JoF3V9c4BccXgI0' # must be in single quote to prevent shell expansion. generate by : echo 'your_password' | mkpasswd -m sha-512 -s
     ssh_pub='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBJLSxzI5IVEHV7NXo7k2arm3fo756ouGNSywQbx1IOk' # generate by ssh-keygen or get existing one from: head -n1 ~/.ssh/authorized_keys
@@ -38,13 +37,7 @@ set_var () {
     if [ -d /sys/firmware/efi/efivars ] ; then
         check_cmd mkfs.fat
         is_efi="y"
-        # validate efi_dir
-        case "$efi_dir" in
-            ([!/]*) die "efi_dir must start with /" ;;
-            (*/) die "efi_dir must NOT end with /" ;;
-            (/boot) die "efi_dir must NOT be /boot on debian" ;;
-        esac
-        pkgs="$pkgs grub-efi dosfstools"
+        pkgs="$pkgs efibootmgr grub-efi dosfstools"
     else
         pkgs="$pkgs grub-pc"
     fi
@@ -80,9 +73,9 @@ set_mount () {
     # fix mount: (hint) your fstab has been modified, but systemd still uses the old version; use 'systemctl daemon-reload' to reload
     command -v systemctl >/dev/null && systemctl daemon-reload || true
     # dev has to be a disk
-    [ "$(lsblk -n -d -o TYPE "$dev" 2>/dev/null)" = disk ] || die "$dev is not a disk, please check option dev="
+    [ "$(lsblk -l -n -d -o TYPE "$dev" 2>/dev/null)" = disk ] || die "$dev is not a disk, please check option dev="
     # dev can't be mounted
-    if [ "$(lsblk -n -o MOUNTPOINTS "$dev")" ] ; then
+    if [ "$(lsblk -l -n -o MOUNTPOINTS "$dev")" ] ; then
         printf '%s\n' "$dev is mounted :" "$(lsblk -o PATH,MOUNTPOINTS "$dev")"
         die "please run 'umount -vfR MOUNTPOINTS' based on above information"
     fi
@@ -94,32 +87,32 @@ set_mount () {
     fi
 
     mkdir -p "$mount_point" || die "failed to create dir : $mount_point"
-    for _wipefs_ in 1 2 3 ; do wipefs -q -a -f $(lsblk -n -o PATH "$dev") ; done # wipe 3 times
+    for _wipefs_ in 1 2 3 ; do wipefs -q -a -f $(lsblk -l -n -o PATH "$dev") ; done # wipe 3 times
     if [ "$is_efi" = "y" ] ; then
         printf '%s\n' "label:gpt" "size=$efi_size,type=uefi" "type=linux" |
         sfdisk -q "$dev" || die "failed to sfdisk $dev"
         sleep 1 # wait for device init after partition
-        devp=$(lsblk -n -o PATH "$dev" | tail -n1) ; devp=${devp%?}
+        devp=$(lsblk -l -n -o PATH "$dev" | tail -n1) ; devp=${devp%?}
         
         mkfs.fat -F 32 "${devp}1" || die "failed to mkfs ${devp}1"
         $mkfs_opt "${devp}2" || die "failed to mkfs.$rootfs ${devp}2"
         mount $mount_opt "${devp}2" "$mount_point" || die "failed to mount ${devp}2"
-        mkdir -p "$mount_point$efi_dir" || die "failed to create dir : $mount_point$efi_dir"
-        mount "${devp}1" "$mount_point$efi_dir" || die "failed to mount ${devp}1"
-        uuid_efi="$(lsblk -n -o UUID "${devp}1")"
-        uuid_root="$(lsblk -n -o UUID "${devp}2")"
-        fstab_efi="UUID=$uuid_efi $efi_dir vfat rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=utf8,shortname=mixed,errors=remount-ro 0 2"
+        mkdir -p "$mount_point/boot/efi" || die "failed to create dir : $mount_point/boot/efi"
+        mount "${devp}1" "$mount_point/boot/efi" || die "failed to mount ${devp}1"
+        uuid_efi="$(lsblk -l -n -o UUID "${devp}1")"
+        uuid_root="$(lsblk -l -n -o UUID "${devp}2")"
+        fstab_efi="UUID=$uuid_efi /boot/efi vfat rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=utf8,shortname=mixed,errors=remount-ro 0 2"
         fstab_root="UUID=$uuid_root / $fstab_opt"
     else
         # gpt + bios boot partition
         printf '%s\n' "label:gpt" 'size=1M,type="bios boot"' "type=linux" |
         sfdisk -q "$dev" || die "failed to sfdisk $dev"
         sleep 1 # wait for device init after partition
-        devp=$(lsblk -n -o PATH "$dev" | tail -n1) ; devp=${devp%?}
+        devp=$(lsblk -l -n -o PATH "$dev" | tail -n1) ; devp=${devp%?}
 
         $mkfs_opt "${devp}2" || die "failed to mkfs.$rootfs ${devp}2"
         mount $mount_opt "${devp}2" "$mount_point" || die "failed to mount ${devp}2"
-        uuid_root="$(lsblk -n -o UUID "${devp}2")"
+        uuid_root="$(lsblk -l -n -o UUID "${devp}2")"
         fstab_root="UUID=$uuid_root / $fstab_opt"
     fi
 }
@@ -359,13 +352,14 @@ ln -sf /usr/bin/fdfind /usr/local/bin/fd
 
 # netbootxyz for rescure from grub or UEFI SHELL
 if [ "$is_efi" = "y" ]; then
-    [ "$arch" = aarch64 ] && curl -sfL -o "$efi_dir"/netboot.xyz.efi https://boot.netboot.xyz/ipxe/netboot.xyz-arm64.efi || true
-    [ "$arch" = x86_64 ] && curl -sfL -o "$efi_dir"/netboot.xyz.efi https://boot.netboot.xyz/ipxe/netboot.xyz.efi || true
+    [ "$arch" = aarch64 ] && curl -sfL -o /boot/efi/netboot.xyz.efi https://boot.netboot.xyz/ipxe/netboot.xyz-arm64.efi || true
+    [ "$arch" = x86_64 ] && curl -sfL -o /boot/efi/netboot.xyz.efi https://boot.netboot.xyz/ipxe/netboot.xyz.efi || true
 else
     curl -sfL -o /boot/netboot.xyz.lkrn https://boot.netboot.xyz/ipxe/netboot.xyz.lkrn
 fi
 
 # grub
+cp -a /etc/default/grub /etc/default/grub.\$(dpkg-query -W -f '\${Version}' grub2-common)
 cat <<EOFGRUB > /etc/default/grub
 GRUB_DEFAULT=0
 GRUB_DISTRIBUTOR="Debian"
@@ -386,10 +380,14 @@ set menu_color_normal=white/black
 set menu_color_highlight=red/black
 EOFGRUBCOLOR
 
+# install grub to also removable place : EFI/BOOT
+# https://wiki.debian.org/GrubEFIReinstall
 if [ "$is_efi" = "y" ] ; then
-    grub-install --efi-directory="$efi_dir" --removable
+    grub-install --recheck --force-extra-removable
+    printf '%s\n' "grub-efi-$host_arch grub2/force_efi_extra_removable boolean true" | debconf-set-selections
+    #dpkg-reconfigure -f noninteractive "grub-efi-$host_arch"
 else
-    grub-install "$dev"
+    grub-install --recheck $dev
 fi
 
 # initramfs
@@ -417,10 +415,10 @@ update-grub2
 apt-get install -y python3-gi
 
 # clean cache
-apt-get autoremove -y --purge && apt-get clean
+apt-get -y autopurge ; apt-get clean
 
 # disable services
-systemctl disable rsync.service e2scrub_reap.service e2scrub_all.timer
+systemctl disable rsync.service
 
 # enable services
 systemctl enable ssh systemd-networkd systemd-timesyncd
