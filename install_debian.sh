@@ -128,8 +128,7 @@ set_rootfs () {
     "$DEBOOTSTRAP_DIR"/debootstrap --no-check-gpg --arch="$host_arch" --variant=minbase "$debian_suite" "$mount_point" "$deb_mirror" || die "failed to run debootstrap"
     sleep 5
     rm -f "$mount_point"/etc/resolv.conf
-    cat /etc/resolv.conf > "$mount_point"/etc/resolv.conf
-    cat /etc/resolv.conf > "$mount_point"/etc/resolv.conf.bk
+    tee "$mount_point"/etc/resolv.conf "$mount_point"/etc/resolv.conf.bk < /etc/resolv.conf > /dev/null
 }
 
 chroot_mount_misc () (
