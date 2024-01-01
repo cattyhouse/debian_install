@@ -349,12 +349,18 @@ EOFSYSCTL
 ln -sf /usr/bin/batcat /usr/local/bin/bat
 ln -sf /usr/bin/fdfind /usr/local/bin/fd
 
-# netbootxyz for rescure from grub or UEFI SHELL
+# download latest netbootxyz for rescure from grub or UEFI SHELL
+
+xyz_ver=\$( curl -sfL https://api.github.com/repos/netbootxyz/netboot.xyz/releases/latest | grep '"tag_name"' | cut -d '"' -f 4)
+xyz_url="https://github.com/netbootxyz/netboot.xyz/releases/download/\${xyz_ver}/netboot.xyz"
+
 if [ "$is_efi" = "y" ]; then
-    [ "$arch" = aarch64 ] && curl -sfL -o /boot/efi/netboot.xyz.efi https://boot.netboot.xyz/ipxe/netboot.xyz-arm64.efi || true
-    [ "$arch" = x86_64 ] && curl -sfL -o /boot/efi/netboot.xyz.efi https://boot.netboot.xyz/ipxe/netboot.xyz.efi || true
+    case "$arch" in
+        (aarch64) curl -sfL -o /boot/efi/netboot.xyz.efi \${xyz_url}-arm64.efi || true ;;
+        (x86_64) curl -sfL -o /boot/efi/netboot.xyz.efi \${xyz_url}.efi || true ;;
+    esac
 else
-    curl -sfL -o /boot/netboot.xyz.lkrn https://boot.netboot.xyz/ipxe/netboot.xyz.lkrn
+    curl -sfL -o /boot/netboot.xyz.lkrn \${xyz_url}.lkrn
 fi
 
 # grub
