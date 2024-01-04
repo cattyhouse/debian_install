@@ -423,6 +423,11 @@ apt-get install -y python3-gi
 apt-get -y autopurge ; apt-get clean
 
 # disable services
+# disable unattended-upgrade for sid
+case $debian_suite in
+    (sid|unstable) systemctl disable apt-daily.timer apt-daily-upgrade.timer ;;
+esac
+
 systemctl disable rsync.service
 
 # enable services
