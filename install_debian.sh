@@ -7,7 +7,7 @@ set_var () {
     is_vm="yes" # set to "yes" for vm/vps. "no" for real hardware
     hostname="debian"
     dev="/dev/vda" # which drive to install to, use lsblk to find it
-    rootfs="btrfs" # btrfs or ext4
+    rootfs="ext4" # btrfs or ext4
     autodns="no" # if yes, then install and enable systemd-resolved. if no, then use 119.29.29.29 for china, 1.1.1.1 for others
     efi_size="64M" # 1) at least 40M 2) 64M is a good enough
     pw='$6$6uBlduKtkwiJw7wY$IaZKonJKpI.cN5/0c.vRuXnztBWPUfI5B9VYYEGddzmrrNMiYsmdVxzu5JzpnsTxEuiEo95JoF3V9c4BccXgI0' # must be in single quote to prevent shell expansion. generate by : echo 'your_password' | mkpasswd -m sha-512 -s
