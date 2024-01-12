@@ -135,23 +135,23 @@ chroot_mount_misc () (
     cd "$mount_point" || die "failed to cd $mount_point"
     mkdir -p proc sys dev/pts dev/shm run tmp
     
+    local do_mount
     do_mount() {
-        local p="$1" ; shift
-        mount "/$p" "$p" "$@" || die "failed to mount $(pwd)/$p"
+        local msg="$@"
+        mount "$@" || die "failed to mount ${msg##* }"
     }
 
-
-    do_mount proc -t proc
-    do_mount sys -t sysfs
-    do_mount dev -t devtmpfs
-    do_mount dev/pts -t devpts
-    do_mount dev/shm -t tmpfs
-    do_mount run --bind --make-slave
-    do_mount tmp -t tmpfs
+    do_mount -t proc proc proc
+    do_mount -t sysfs sysfs sys
+    do_mount -t devtmpfs devtmpfs dev
+    do_mount -t devpts devpts dev/pts
+    do_mount -t tmpfs shm dev/shm
+    do_mount --bind --make-slave /run run
+    do_mount -t tmpfs tmpfs tmp
 
     if [ "$is_efi" = "y" ] ; then
         mkdir -p sys/firmware/efi/efivars
-        do_mount sys/firmware/efi/efivars -t efivarfs
+        do_mount -t efivarfs efivarfs sys/firmware/efi/efivars
     fi
 )
 
