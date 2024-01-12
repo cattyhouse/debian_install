@@ -133,7 +133,7 @@ set_rootfs () {
 
 chroot_mount_misc () (
     cd "$mount_point" || die "failed to cd $mount_point"
-    mkdir -p proc sys dev/pts dev/shm run tmp
+    mkdir -p proc sys dev run tmp
     
     local do_mount
     do_mount() {
@@ -143,9 +143,9 @@ chroot_mount_misc () (
 
     do_mount -t proc proc proc
     do_mount -t sysfs sysfs sys
-    do_mount -t devtmpfs devtmpfs dev
-    do_mount -t devpts devpts dev/pts
-    do_mount -t tmpfs shm dev/shm
+    # use --rbind for dev, because some system may use udev/devtmpfs for /dev
+    # use --make-rslave so we are able to unmount
+    do_mount --rbind --make-rslave /dev dev
     do_mount --bind --make-slave /run run
     do_mount -t tmpfs tmpfs tmp
 
