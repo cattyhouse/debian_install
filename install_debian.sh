@@ -4,7 +4,7 @@ set_var () {
     #### TODO IMPORTANT VARIABLE ####
 
     is_in_china="no" # set to "yes" if the computer to be installed is located in china. otherwise set to "no"
-    is_vm="yes" # set to "yes" for vm/vps. "no" for real hardware
+    is_vm="yes" # set to "yes" for vm/vps. "no" for real hardware and vmware guest
     hostname="debian"
     dev="/dev/vda" # which drive to install to, use lsblk to find it
     rootfs="ext4" # btrfs or ext4
