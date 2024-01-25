@@ -503,7 +503,7 @@ check_network () {
 }
 
 # real job
-deps="wget curl tar xz gzip sfdisk mount lsblk mountpoint perl ar wipefs"
+deps="wget curl tar xz gzip sfdisk mount lsblk mountpoint perl ar wipefs sed"
 export LANG=C
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
