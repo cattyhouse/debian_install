@@ -51,7 +51,7 @@ set_mount () {
         (ext4)
             check_cmd mkfs.ext4
             mkfs_opt="mkfs.ext4 -qFF"
-            mount_opt=""
+            mount_opt="-t ext4"
             fstab_opt="ext4 rw,relatime 0 1"
             pkgs="$pkgs e2fsprogs"
         ;;
@@ -60,7 +60,7 @@ set_mount () {
             check_cmd mkfs.btrfs
             modprobe btrfs 2>/dev/null
             mkfs_opt="mkfs.btrfs -qf"
-            mount_opt="-o compress=zstd:1"
+            mount_opt="-t btrfs -o compress=zstd:1"
             fstab_opt="btrfs compress=zstd:1 0 0"
             pkgs="$pkgs btrfs-progs btrfs-compsize"
         ;;
