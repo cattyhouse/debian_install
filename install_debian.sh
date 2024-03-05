@@ -124,6 +124,8 @@ set_rootfs () {
     tar -xf- -C "$ds_dir" || die "failed to curl debootstrap"
     export DEBOOTSTRAP_DIR="$ds_dir/debootstrap-master"
     
+    # since https://salsa.debian.org/installer-team/debootstrap/-/commit/2d3eae916af51cc49ab0989cea1f5bfb58012179
+    [ -e "$DEBOOTSTRAP_DIR/scripts/$debian_suite" ] || ln -sf "$DEBOOTSTRAP_DIR/scripts/sid" "$DEBOOTSTRAP_DIR/scripts/$debian_suite"
     # prepare rootfs
     "$DEBOOTSTRAP_DIR"/debootstrap --no-check-gpg --arch="$host_arch" --variant=minbase "$debian_suite" "$mount_point" "$deb_mirror" || die "failed to run debootstrap"
     sleep 5
