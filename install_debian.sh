@@ -14,11 +14,15 @@ set_var () {
     ssh_pub='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBJLSxzI5IVEHV7NXo7k2arm3fo756ouGNSywQbx1IOk' # generate by ssh-keygen or get existing one from: head -n1 ~/.ssh/authorized_keys
     debian_suite="bookworm" # supported: by code name:  bookworm | trixie | sid  OR  by branch : stable | testing | unstable . code name is preferred
     timezone="Asia/Shanghai"
-    pkgs="apt-file bat bc ca-certificates cron cron-daemon-common curl dbus dbus-user-session fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree unattended-upgrades vim whiptail wireguard-tools zstd" # select preinstalled packages
+    pkgs="apt-file bat bc ca-certificates cron cron-daemon-common curl dbus dbus-user-session fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree vim whiptail wireguard-tools zstd" # select preinstalled packages
     mount_point="/mnt/debian_c7bN4b"
 
     #### TODO IMPORTANT VARIABLE ####
 
+    case "$debian_suite" in
+        (sid|unstable) : ;;
+        (*) pkgs="$pkgs unattended-upgrades" ;;
+    esac
     # arch
     arch=$(uname -m)
     case "$arch" in
@@ -168,7 +172,7 @@ _comp="main contrib non-free non-free-firmware"
 _deburl="https://deb.debian.org/debian/"
 _securl="https://security.debian.org/debian-security/"
 printf '%s\n' "deb \$_deburl $debian_suite \$_comp" > /etc/apt/sources.list
-case $debian_suite in
+case "$debian_suite" in
     (unstable|sid) : ;;
     (*) printf '%s\n' "deb \$_deburl ${debian_suite}-updates \$_comp" "deb \$_securl ${debian_suite}-security \$_comp" >> /etc/apt/sources.list ;;
 esac
@@ -228,6 +232,8 @@ printf '%s\n' "$hostname" > /etc/hostname
 update-alternatives --set editor /usr/bin/vim.basic
 
 # unattended-upgrades custom
+case "$pkgs" in
+(*unattended-upgrades*)
 printf '%s\n' \
 'Unattended-Upgrade::OnlyOnACPower "false";' \
 'Unattended-Upgrade::Skip-Updates-On-Metered-Connections "false";' \
@@ -235,6 +241,8 @@ printf '%s\n' \
 'APT::Periodic::Unattended-Upgrade "always";' \
 'APT::Periodic::CleanInterval "always";' \
 > /etc/apt/apt.conf.d/99unattended-upgrades-custom
+;;
+esac
 
 # download timer
 cat <<EOFDOWNTIMER | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-daily.timer.d/override.conf
@@ -431,18 +439,12 @@ fi
 update-grub2
 
 # fix warning of /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
-apt-get install -y python3-gi
+case "$pkgs" in (*unattended-upgrades*) apt-get install -y python3-gi ;; esac
 
 # clean cache
 apt-get -y autopurge
 apt-get clean
 apt-file update
-
-# disable services
-# disable unattended-upgrade for sid
-case $debian_suite in
-    (sid|unstable) systemctl disable apt-daily.timer apt-daily-upgrade.timer ;;
-esac
 
 systemctl disable rsync.service
 
