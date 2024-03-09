@@ -124,10 +124,11 @@ set_rootfs () {
     tar -xf- -C "$ds_dir" || die "failed to curl debootstrap"
     export DEBOOTSTRAP_DIR="$ds_dir/debootstrap-master"
     
-    # since https://salsa.debian.org/installer-team/debootstrap/-/commit/2d3eae916af51cc49ab0989cea1f5bfb58012179
-    [ -e "$DEBOOTSTRAP_DIR/scripts/$debian_suite" ] || ln -sf "$DEBOOTSTRAP_DIR/scripts/sid" "$DEBOOTSTRAP_DIR/scripts/$debian_suite"
     # prepare rootfs
-    "$DEBOOTSTRAP_DIR"/debootstrap --no-check-gpg --arch="$host_arch" --variant=minbase "$debian_suite" "$mount_point" "$deb_mirror" || die "failed to run debootstrap"
+    # "sid" in the end is the script name, needed since this commit :
+    # https://salsa.debian.org/installer-team/debootstrap/-/commit/2d3eae916af51cc49ab0989cea1f5bfb58012179
+    # note that all scripts are linked to scripts/sid
+    "$DEBOOTSTRAP_DIR"/debootstrap --no-check-gpg --arch="$host_arch" --variant=minbase "$debian_suite" "$mount_point" "$deb_mirror" sid || die "failed to run debootstrap"
     sleep 5
     rm -f "$mount_point"/etc/resolv.conf
     tee "$mount_point"/etc/resolv.conf "$mount_point"/etc/resolv.conf.bk < /etc/resolv.conf > /dev/null
@@ -433,7 +434,9 @@ update-grub2
 apt-get install -y python3-gi
 
 # clean cache
-apt-get -y autopurge ; apt-get clean
+apt-get -y autopurge
+apt-get clean
+apt-file update
 
 # disable services
 # disable unattended-upgrade for sid
