@@ -3,8 +3,8 @@ export PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin/:/sbin:/bin"
 set_var () {
     #### TODO IMPORTANT VARIABLE ####
 
-    is_in_china="no" # set to "yes" if the computer to be installed is located in china. otherwise set to "no"
-    is_vm="yes" # set to "yes" for vm/vps. "no" for real hardware and vmware guest
+    is_in_china="no" # set dns and ntp to china's
+    is_vm="yes" # set to "yes" will install cloud kernel
     hostname="debian"
     dev="/dev/vda" # which drive to install to, use lsblk to find it
     rootfs="ext4" # btrfs or ext4
@@ -140,26 +140,25 @@ set_rootfs () {
 
 chroot_mount_misc () (
     cd "$mount_point" || die "failed to cd $mount_point"
-    mkdir -p proc sys dev run tmp
-    
+    mkdir -p proc sys dev/pts dev/shm run tmp
     local do_mount
     do_mount() {
         local msg="$@"
         mount "$@" || die "failed to mount ${msg##* }"
     }
 
-    do_mount -t proc proc proc
-    do_mount -t sysfs sysfs sys
-    # use --rbind for dev, because some system may use udev/devtmpfs for /dev
-    # use --make-rslave so we are able to unmount
-    do_mount --rbind --make-rslave /dev dev
-    do_mount --bind --make-slave /run run
-    do_mount -t tmpfs tmpfs tmp
-
+    # ref : https://github.com/archlinux/arch-install-scripts/blob/master/common
+    do_mount proc proc -t proc
+    do_mount sys sys -t sysfs
     if [ "$is_efi" = "y" ] ; then
         mkdir -p sys/firmware/efi/efivars
-        do_mount -t efivarfs efivarfs sys/firmware/efi/efivars
+        do_mount efivarfs sys/firmware/efi/efivars -t efivarfs
     fi
+    do_mount udev dev -t devtmpfs
+    do_mount devpts dev/pts -t devpts
+    do_mount shm dev/shm -t tmpfs
+    do_mount /run run --bind --make-private
+    do_mount tmp tmp -t tmpfs
 )
 
 set_chroot () {
