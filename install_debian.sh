@@ -239,6 +239,7 @@ printf '%s\n' \
 'APT::Periodic::Update-Package-Lists "always";' \
 'APT::Periodic::Unattended-Upgrade "always";' \
 'APT::Periodic::CleanInterval "always";' \
+'Unattended-Upgrade::Origins-Pattern:: "origin=Debian,codename=\${distro_codename}-updates,label=Debian";' \
 > /etc/apt/apt.conf.d/99unattended-upgrades-custom
 ;;
 esac
