@@ -12,22 +12,27 @@ set_var () {
     efi_size="64M" # 1) at least 40M 2) 64M is a good enough
     pw='$6$6uBlduKtkwiJw7wY$IaZKonJKpI.cN5/0c.vRuXnztBWPUfI5B9VYYEGddzmrrNMiYsmdVxzu5JzpnsTxEuiEo95JoF3V9c4BccXgI0' # must be in single quote to prevent shell expansion. generate by : echo 'your_password' | mkpasswd -m sha-512 -s
     ssh_pub='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBJLSxzI5IVEHV7NXo7k2arm3fo756ouGNSywQbx1IOk' # generate by ssh-keygen or get existing one from: head -n1 ~/.ssh/authorized_keys
-    debian_suite="bookworm" # supported: by code name:  bookworm | trixie | sid  OR  by branch : stable | testing | unstable . code name is preferred
+    debian_suite="stable" # one of : stable testing unstable
     timezone="Asia/Shanghai"
-    pkgs="apt-file bat bc ca-certificates cron cron-daemon-common curl dbus dbus-user-session fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree vim whiptail wireguard-tools zstd" # select preinstalled packages
+    pkgs="apt-file bat bc ca-certificates cron curl dbus dbus-user-session fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree vim whiptail wireguard-tools zstd" # select preinstalled packages
     mount_point="/mnt/debian_c7bN4b"
 
     #### TODO IMPORTANT VARIABLE ####
 
     case "$debian_suite" in
-        (sid|unstable) : ;;
+        (stable|testing|unstable) : ;;
+        (*) die "debian_suite must be one of : stable testing unstable" ;;
+    esac
+
+    case "$debian_suite" in
+        (unstable) : ;;
         (*) pkgs="$pkgs unattended-upgrades" ;;
     esac
     # arch
     arch=$(uname -m)
     case "$arch" in
-        (aarch64) host_arch="arm64" ; console=ttyAMA0 ;;
-        (x86_64) host_arch="amd64" ; console=ttyS0 ;;
+        (aarch64) host_arch="arm64" ;;
+        (x86_64) host_arch="amd64" ;;
         (*) die "unsupported arch : $arch" ;;
     esac
     
@@ -46,8 +51,11 @@ set_var () {
         pkgs="$pkgs grub-pc"
     fi
     
-    # set mirror for debootstrap
+    # set mirror for debootstrap, note : must end with /
     deb_mirror="https://deb.debian.org/debian/"
+    # get codename
+    codename=$(curl -sfL ${deb_mirror}dists/$debian_suite/InRelease | awk '/^Codename:/ {print $2}')
+    [ "$codename" ] || die "failed to get codename for debian_suite : $debian_suite"
 }
 
 set_mount () {
@@ -129,10 +137,9 @@ set_rootfs () {
     export DEBOOTSTRAP_DIR="$ds_dir/debootstrap-master"
     
     # prepare rootfs
-    # "sid" in the end is the script name, needed since this commit :
-    # https://salsa.debian.org/installer-team/debootstrap/-/commit/2d3eae916af51cc49ab0989cea1f5bfb58012179
+    # https://salsa.debian.org/installer-team/debootstrap/-/tree/master/scripts?ref_type=heads
     # note that all scripts are linked to scripts/sid
-    "$DEBOOTSTRAP_DIR"/debootstrap --no-check-gpg --arch="$host_arch" --variant=minbase "$debian_suite" "$mount_point" "$deb_mirror" sid || die "failed to run debootstrap"
+    "$DEBOOTSTRAP_DIR"/debootstrap --no-check-gpg --arch="$host_arch" --variant=minbase "$debian_suite" "$mount_point" "$deb_mirror" || die "failed to run debootstrap"
     sleep 5
     rm -f "$mount_point"/etc/resolv.conf
     tee "$mount_point"/etc/resolv.conf "$mount_point"/etc/resolv.conf.bk < /etc/resolv.conf > /dev/null
@@ -170,12 +177,10 @@ chroot "$mount_point" /bin/sh -s <<EOFCHROOT
 _comp="main contrib non-free non-free-firmware"
 _deburl="https://deb.debian.org/debian/"
 _securl="https://security.debian.org/debian-security/"
-printf '%s\n' "deb \$_deburl $debian_suite \$_comp" > /etc/apt/sources.list
+printf '%s\n' "deb \$_deburl $codename \$_comp" > /etc/apt/sources.list
 case "$debian_suite" in
-    (unstable|sid) : ;;
-    (*) printf '%s\n' "deb \$_deburl ${debian_suite}-updates \$_comp" "deb \$_securl ${debian_suite}-security \$_comp" >> /etc/apt/sources.list ;;
+    (stable|testing) printf '%s\n' "deb \$_deburl ${codename}-updates \$_comp" "deb \$_securl ${codename}-security \$_comp" >> /etc/apt/sources.list ;;
 esac
-
 # update sources
 apt-get update
 
@@ -391,7 +396,6 @@ GRUB_DEFAULT=0
 GRUB_DISTRIBUTOR="Debian"
 GRUB_TIMEOUT=1
 GRUB_CMDLINE_LINUX_DEFAULT="quiet zswap.enabled=0 nomodeset"
-#GRUB_CMDLINE_LINUX_DEFAULT="quiet console=$console zswap.enabled=0 nomodeset"
 GRUB_DISABLE_SUBMENU=y
 GRUB_DISABLE_RECOVERY=true
 GRUB_DISABLE_OS_PROBER=true
@@ -510,7 +514,7 @@ check_network () {
 }
 
 # real job
-deps="wget curl tar xz gzip sfdisk mount lsblk mountpoint perl ar wipefs sed"
+deps="wget curl tar xz gzip sfdisk mount lsblk mountpoint perl ar wipefs sed awk"
 export LANG=C
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
