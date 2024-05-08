@@ -306,7 +306,7 @@ printf '%s\n' '$ssh_pub' | install /dev/stdin -m 600 /root/.ssh/authorized_keys
 printf '%s\n' 'root:$pw' | chpasswd -e
 
 # UMASK to 077
-sed -i 's|^UMASK.*|UMASK 077|' /etc/login.defs
+# sed -i 's|^UMASK.*|UMASK 077|' /etc/login.defs
 
 # disable motd from debian
 sed -i -e '/pam_motd.so/ s|^|#|' /etc/pam.d/login /etc/pam.d/sshd
