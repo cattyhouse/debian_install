@@ -15,7 +15,7 @@ set_var () {
     debian_suite="stable" # one of : stable testing unstable
     timezone="Asia/Shanghai"
     unattended_upgrades="yes" # if yes, will enable unattended-upgrades on stable/testing
-    pkgs="apt-file bat bc ca-certificates cron curl fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync dbus systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree vim whiptail wireguard-tools zstd" # select preinstalled packages
+    pkgs="apt-file bat bc ca-certificates cron curl fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync dbus dbus-user-session systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree vim whiptail wireguard-tools zstd" # select preinstalled packages, dbus dbus-user-session is needed for reboot/sshd to work properly
     mount_point="/mnt/debian_c7bN4b"
 
     #### TODO IMPORTANT VARIABLE ####
