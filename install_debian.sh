@@ -15,7 +15,7 @@ set_var () {
     debian_suite="stable" # one of : stable testing unstable
     timezone="Asia/Shanghai"
     unattended_upgrades="yes" # if yes, will enable unattended-upgrades on stable/testing
-    pkgs="apt-file bat bc ca-certificates cron curl dbus dbus-user-session fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree vim whiptail wireguard-tools zstd" # select preinstalled packages
+    pkgs="apt-file bat bc ca-certificates cron curl fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree vim whiptail wireguard-tools zstd" # select preinstalled packages
     mount_point="/mnt/debian_c7bN4b"
 
     #### TODO IMPORTANT VARIABLE ####
@@ -36,11 +36,6 @@ set_var () {
         (x86_64) host_arch="amd64" ;;
         (*) die "unsupported arch : $arch" ;;
     esac
-    
-    # systemd-resolved or not
-    if [ "$autodns" = yes ] ; then
-        pkgs="$pkgs systemd-resolved"
-    fi
     
     # check efi
     is_efi=""
@@ -143,7 +138,7 @@ set_rootfs () {
     "$DEBOOTSTRAP_DIR"/debootstrap --no-check-gpg --arch="$host_arch" --variant=minbase "$debian_suite" "$mount_point" "$deb_mirror" || die "failed to run debootstrap"
     sleep 5
     rm -f "$mount_point"/etc/resolv.conf
-    tee "$mount_point"/etc/resolv.conf "$mount_point"/etc/resolv.conf.bk < /etc/resolv.conf > /dev/null
+    cat /etc/resolv.conf > "$mount_point"/etc/resolv.conf
 }
 
 chroot_mount_misc () (
@@ -186,11 +181,7 @@ esac
 apt-get update
 
 # install packages
-apt-get install -q -d -y --no-install-recommends $pkgs
-apt-get install -q -y --no-install-recommends $pkgs
-
-# restore resolv.conf due to systemd-resolved
-mv /etc/resolv.conf.bk /etc/resolv.conf
+apt-get install -y --no-install-recommends $pkgs
 
 cat <<EOFAPT > /etc/apt/apt.conf.d/99-no-recommends
 APT::Install-Recommends "0";
@@ -247,6 +238,9 @@ printf '%s\n' \
 'APT::Periodic::CleanInterval "always";' \
 'Unattended-Upgrade::Origins-Pattern:: "origin=Debian,codename=\${distro_codename}-updates,label=Debian";' \
 > /etc/apt/apt.conf.d/99unattended-upgrades-custom
+
+# fix warning of /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+apt-get install -y python3-gi
 ;;
 esac
 
@@ -417,7 +411,6 @@ EOFGRUBCOLOR
 if [ "$is_efi" = "y" ] ; then
     grub-install --recheck --force-extra-removable
     printf '%s\n' "grub-efi-$host_arch grub2/force_efi_extra_removable boolean true" | debconf-set-selections
-    #dpkg-reconfigure -f noninteractive "grub-efi-$host_arch"
 else
     grub-install --recheck $dev
 fi
@@ -427,7 +420,7 @@ cat <<EOFINIT >> /etc/initramfs-tools/initramfs.conf
 
 MODULES=dep
 COMPRESS=zstd
-COMPRESSLEVEL=1
+COMPRESSLEVEL=6
 EOFINIT
 
 if [ "$rootfs" = btrfs ] ; then
@@ -436,33 +429,36 @@ fi
 
 # kernel
 if [ "$is_vm" = yes ] ; then
-    apt-get -y install linux-image-cloud-$host_arch
+    apt-get install -y linux-image-cloud-$host_arch
 else
-    apt-get -y install linux-image-$host_arch
+    apt-get install -y linux-image-$host_arch
 fi
 
+# generate grub.cfg
 update-grub2
 
-# fix warning of /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
-case "$pkgs" in (*unattended-upgrades*) apt-get install -y python3-gi ;; esac
-
-# clean cache
-apt-get -y autopurge
-apt-get clean
-apt-file update
-
+# disable services
 systemctl disable rsync.service
 
 # enable services
 systemctl enable ssh systemd-networkd systemd-timesyncd
 
-# dns resolv.conf
-rm -f /etc/resolv.conf # we don't need it
+# init apt-file database
+case "$pkgs" in (*apt-file*) apt-file update ;; esac
 
+
+# TODO MUST BE LAST OPERATION
+# auto remove unneeded packages
+apt-get autopurge -y
+
+# handle resolv.conf
 if [ "$autodns" = yes ] ; then
+    apt-get install -y systemd-resolved
     systemctl enable systemd-resolved
+    [ -h /etc/resolv.conf ] || ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 else
     systemctl disable systemd-resolved 2>/dev/null # in case this is auto installed by debootstrap
+    rm -f /etc/resolv.conf
     if [ "$is_in_china" = yes ] ; then
         printf '%s\n' "nameserver 119.29.29.29" > /etc/resolv.conf
     else
@@ -470,6 +466,8 @@ else
     fi
 fi
 
+# clean cache
+apt-get clean
 EOFCHROOT
 }
 
@@ -492,6 +490,7 @@ die () { printf '\033[31mERR: \033[0m%s\n' "$@" ; exit 1 ; }
 
 cleanup () {
     sync
+    fstrim -av || true
 }
 
 check_root () {
@@ -499,7 +498,7 @@ check_root () {
 }
 
 fix_alpine () {
-    if command -v apk > /dev/null ; then
+    if command -v setup-devd > /dev/null ; then
         # busybox mdev has bugs, use mdevd instead
         setup-devd mdevd > /dev/null 2>&1
     fi
@@ -507,7 +506,7 @@ fix_alpine () {
 
 fix_clock () {
     # some distro, alpine virt for instance, clock is not synced on boot
-    hwclock -s >/dev/null 2>&1
+    hwclock -s >/dev/null 2>&1 || true
 }
 
 check_network () {
