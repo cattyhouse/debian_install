@@ -286,15 +286,8 @@ PrintLastLog no
 LogLevel QUIET
 EOFSSHD
 
-
 # disable AcceptEnv
 sed -i -e '/^AcceptEnv/ s|^|#|' /etc/ssh/sshd_config
-
-cat <<EOFSSHDAR | install -D -m 0644 /dev/stdin /etc/systemd/system/ssh.service.d/override.conf
-
-[Service]
-Restart=always
-EOFSSHDAR
 
 install -m 700 -d /root/.ssh
 printf '%s\n' '$ssh_pub' | install /dev/stdin -m 600 /root/.ssh/authorized_keys
