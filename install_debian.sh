@@ -1,14 +1,20 @@
 #!/bin/sh
 export PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin/:/sbin:/bin"
+
+# set debian mirror , must end with /
+deb_mirror="https://deb.debian.org/debian/"
+deb_sec_mirror="https://security.debian.org/debian-security/"
+deb_comp="main contrib non-free non-free-firmware"
+
 set_var () {
     #### TODO IMPORTANT VARIABLE ####
 
-    is_in_china="no" # set dns and ntp to china's
     is_vm="yes" # set to "yes" will install cloud kernel
     hostname="debian"
     dev="/dev/vda" # which drive to install to, use lsblk to find it
     rootfs="ext4" # btrfs or ext4
     autodns="no" # if yes, then install and enable systemd-resolved. if no, then use 119.29.29.29 for china, 1.1.1.1 for others
+    dns="1.1.1.1" # dns to use when autodns=no
     efi_size="64M" # 1) at least 40M 2) 64M is a good enough
     pw='$6$6uBlduKtkwiJw7wY$IaZKonJKpI.cN5/0c.vRuXnztBWPUfI5B9VYYEGddzmrrNMiYsmdVxzu5JzpnsTxEuiEo95JoF3V9c4BccXgI0' # must be in single quote to prevent shell expansion. generate by : echo 'your_password' | mkpasswd -m sha-512 -s
     ssh_pub='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBJLSxzI5IVEHV7NXo7k2arm3fo756ouGNSywQbx1IOk' # generate by ssh-keygen or get existing one from: head -n1 ~/.ssh/authorized_keys
@@ -19,16 +25,6 @@ set_var () {
     mount_point="/mnt/debian_c7bN4b"
 
     #### TODO IMPORTANT VARIABLE ####
-
-    case "$debian_suite" in
-        (stable|testing|unstable) : ;;
-        (*) die "debian_suite must be one of : stable testing unstable" ;;
-    esac
-
-    case "$debian_suite" in
-        (unstable) : ;;
-        (*) if [ "$unattended_upgrades" = yes ] ; then pkgs="$pkgs unattended-upgrades" ; fi ;;
-    esac
     # arch
     arch=$(uname -m)
     case "$arch" in
@@ -37,6 +33,12 @@ set_var () {
         (*) die "unsupported arch : $arch" ;;
     esac
     
+    case "$debian_suite" in
+        (unstable) : ;;
+        (stable|testing) if [ "$unattended_upgrades" = yes ] ; then pkgs="$pkgs unattended-upgrades" ; fi ;;
+        (*) die "debian_suite must be one of : stable testing unstable" ;;
+    esac
+
     # check efi
     is_efi=""
     if [ -d /sys/firmware/efi/efivars ] ; then
@@ -47,8 +49,6 @@ set_var () {
         pkgs="$pkgs grub-pc"
     fi
     
-    # set mirror for debootstrap, note : must end with /
-    deb_mirror="https://deb.debian.org/debian/"
     # get codename
     codename=$(curl -sfL ${deb_mirror}dists/$debian_suite/InRelease | awk '/^Codename:/ {print $2}')
     [ "$codename" ] || die "failed to get codename for debian_suite : $debian_suite"
@@ -170,12 +170,9 @@ chroot "$mount_point" /bin/sh -s <<EOFCHROOT
 . /etc/profile
 
 # apt sources
-_comp="main contrib non-free non-free-firmware"
-_deburl="https://deb.debian.org/debian/"
-_securl="https://security.debian.org/debian-security/"
-printf '%s\n' "deb \$_deburl $codename \$_comp" > /etc/apt/sources.list
+printf '%s\n' "deb $deb_mirror $codename $deb_comp" > /etc/apt/sources.list
 case "$debian_suite" in
-    (stable|testing) printf '%s\n' "deb \$_deburl ${codename}-updates \$_comp" "deb \$_securl ${codename}-security \$_comp" >> /etc/apt/sources.list ;;
+    (stable|testing) printf '%s\n' "deb $deb_mirror ${codename}-updates $deb_comp" "deb $deb_sec_mirror ${codename}-security $deb_comp" >> /etc/apt/sources.list ;;
 esac
 # update sources
 apt-get update
@@ -293,30 +290,11 @@ install -m 700 -d /root/.ssh
 printf '%s\n' '$ssh_pub' | install /dev/stdin -m 600 /root/.ssh/authorized_keys
 printf '%s\n' 'root:$pw' | chpasswd -e
 
-# UMASK to 077
-# sed -i 's|^UMASK.*|UMASK 077|' /etc/login.defs
-
 # disable motd from debian
 sed -i -e '/pam_motd.so/ s|^|#|' /etc/pam.d/login /etc/pam.d/sshd
 
 # disable deprecated user_readenv (man pam_env)
 sed -i '/pam_env.so/ s|user_readenv=1|user_readenv=0|' /etc/pam.d/sshd
-
-# disable ssh-keygen comment
-for file in /etc/ssh/ssh_host_* ; do
-    case "\$file" in
-        (*.pub) : ;;
-        (*) ssh-keygen -c -C "" -f "\$file" >/dev/null 2>&1 ;;
-    esac
-done
-
-# ntp servers
-if [ "$is_in_china" = yes ] ; then
-cat <<EOFNTP >> /etc/systemd/timesyncd.conf
-
-NTP=ntp.aliyun.com ntp1.aliyun.com time1.cloud.tencent.com time2.cloud.tencent.com
-EOFNTP
-fi
 
 # sysctl
 mkdir -p /etc/sysctl.d
@@ -452,11 +430,7 @@ if [ "$autodns" = yes ] ; then
 else
     systemctl disable systemd-resolved 2>/dev/null # in case this is auto installed by debootstrap
     rm -f /etc/resolv.conf
-    if [ "$is_in_china" = yes ] ; then
-        printf '%s\n' "nameserver 119.29.29.29" > /etc/resolv.conf
-    else
-        printf '%s\n' "nameserver 1.1.1.1" > /etc/resolv.conf
-    fi
+    printf '%s\n' "nameserver $dns" > /etc/resolv.conf
 fi
 
 # clean cache
@@ -503,14 +477,16 @@ fix_clock () {
 }
 
 check_network () {
-    curl --connect-timeout 5 -m 10 -sfI https://deb.debian.org >/dev/null 2>&1 || die "please check your network"
+    curl --connect-timeout 5 -m 10 -sfI $deb_mirror >/dev/null 2>&1 || die "please check your network"
 }
 
 # real job
+
 deps="wget curl tar xz gzip sfdisk mount lsblk mountpoint perl ar wipefs sed awk"
 export LANG=C
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
+
 check_root
 check_cmd $deps
 fix_clock
