@@ -174,20 +174,25 @@ printf '%s\n' "deb $deb_mirror $codename $deb_comp" > /etc/apt/sources.list
 case "$debian_suite" in
     (stable|testing) printf '%s\n' "deb $deb_mirror ${codename}-updates $deb_comp" "deb $deb_sec_mirror ${codename}-security $deb_comp" >> /etc/apt/sources.list ;;
 esac
-# update sources
-apt-get update
 
-# install packages
-apt-get install -y --no-install-recommends $pkgs
-
+mkdir -p /etc/apt/apt.conf.d
 cat <<EOFAPT > /etc/apt/apt.conf.d/99-no-recommends
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 EOFAPT
 
-# ucf.conf dpkg.cfg
-printf '%s\n' "conf_force_conffold=YES" >> /etc/ucf.conf
+# dpkg.cfg, in case dist-upgrade needs it
 printf '%s\n' "force-confold" "force-confmiss" >> /etc/dpkg/dpkg.cfg
+
+# update sources
+apt-get update
+apt-get -y dist-upgrade
+
+# install packages
+apt-get install -y $pkgs
+
+# ucf.conf
+printf '%s\n' "conf_force_conffold=YES" >> /etc/ucf.conf
 
 # needrestart.conf
 cat <<'EOFNR' > /etc/needrestart/conf.d/99.zzz.conf
@@ -241,7 +246,7 @@ apt-get install -y python3-gi
 ;;
 esac
 
-# download timer
+# download timer, this timer is installed by apt, do it anyways
 cat <<EOFDOWNTIMER | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-daily.timer.d/override.conf
 [Timer]
 OnCalendar=
@@ -249,7 +254,7 @@ OnCalendar=06,18:00
 RandomizedDelaySec=1h
 EOFDOWNTIMER
 
-# install timer
+# install timer, this timer is installed by apt, do it anyways
 cat <<EOFINSTALLTIMER | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-daily-upgrade.timer.d/override.conf
 [Timer]
 OnCalendar=
@@ -258,22 +263,26 @@ RandomizedDelaySec=1h
 EOFINSTALLTIMER
 
 # zstd on zram 
+case "$pkgs" in
+(*systemd-zram-generator*)
 cat <<EOFZRAM > /etc/systemd/zram-generator.conf
 [zram0]
 zram-size = ram / 2
 compression-algorithm = zstd
 EOFZRAM
+;;
+esac
 
 # locale
 # based on code in dpkg-query --control-show locales config
 printf '%s\n' 'en_US.UTF-8 UTF-8' 'C.UTF-8 UTF-8' > /etc/locale.gen
 printf '%s\n' 'LANG=C.UTF-8' > /etc/default/locale
-dpkg-reconfigure -f noninteractive locales
+dpkg-reconfigure locales
 
 # timezone
 # based on code in dpkg-query --control-show tzdata config
 ln -sf /usr/share/zoneinfo/$timezone /etc/localtime
-dpkg-reconfigure -f noninteractive tzdata
+dpkg-reconfigure tzdata
 
 # sshd
 cat <<EOFSSHD >> /etc/ssh/sshd_config
@@ -338,8 +347,8 @@ fs.nr_open = 1073741816
 EOFSYSCTL
 
 # link fd, bat
-ln -sf /usr/bin/batcat /usr/local/bin/bat
-ln -sf /usr/bin/fdfind /usr/local/bin/fd
+if [ -x /usr/bin/batcat ] ; then ln -sf /usr/bin/batcat /usr/local/bin/bat ; fi
+if [ -x /usr/bin/fdfind ] ; then ln -sf /usr/bin/fdfind /usr/local/bin/fd ; fi
 
 # download latest netbootxyz for rescure from grub or UEFI SHELL
 
