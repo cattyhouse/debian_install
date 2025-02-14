@@ -170,10 +170,41 @@ chroot "$mount_point" /bin/sh -s <<EOFCHROOT
 . /etc/profile
 
 # apt sources
-printf '%s\n' "deb $deb_mirror $codename $deb_comp" > /etc/apt/sources.list
+#printf '%s\n' "deb $deb_mirror $codename $deb_comp" > /etc/apt/sources.list
+#case "$debian_suite" in
+#    (stable|testing) printf '%s\n' "deb $deb_mirror ${codename}-updates $deb_comp" "deb $deb_sec_mirror ${codename}-security $deb_comp" >> /etc/apt/sources.list ;;
+#esac
+
+# new apt sources
+mkdir -p /etc/apt/sources.list.d/
+cat <<EOFSRC > /etc/apt/sources.list.d/debian.sources
+Types: deb
+URIs: $deb_mirror
+Suites: $codename
+Components: $deb_comp
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOFSRC
+
 case "$debian_suite" in
-    (stable|testing) printf '%s\n' "deb $deb_mirror ${codename}-updates $deb_comp" "deb $deb_sec_mirror ${codename}-security $deb_comp" >> /etc/apt/sources.list ;;
+(stable|testing)
+cat <<EOFSRCSEC >> /etc/apt/sources.list.d/debian.sources
+
+Types: deb
+URIs: $deb_mirror
+Suites: ${codename}-updates
+Components: $deb_comp
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: $deb_sec_mirror
+Suites: ${codename}-security
+Components: $deb_comp
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOFSRCSEC
+;;
 esac
+
+if [ -f /etc/apt/sources.list ] ; then mv /etc/apt/sources.list /etc/apt/sources.list.bak ; fi
 
 mkdir -p /etc/apt/apt.conf.d
 cat <<EOFAPT > /etc/apt/apt.conf.d/99-no-recommends
