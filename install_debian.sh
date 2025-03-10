@@ -197,7 +197,9 @@ Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOFSRCSEC
 ;;
 esac
-if [ -f /etc/apt/sources.list ] ; then mv /etc/apt/sources.list /etc/apt/sources.list.bak ; fi
+if [ -f /etc/apt/sources.list ] ; then
+    printf '%s\n' "#see /etc/apt/sources.list.d/debian.sources" > /etc/apt/sources.list
+fi
 
 mkdir -p /etc/apt/apt.conf.d
 cat <<EOFAPT > /etc/apt/apt.conf.d/99-no-recommends
