@@ -169,12 +169,6 @@ chroot_mount_misc || exit 1
 chroot "$mount_point" /bin/sh -s <<EOFCHROOT
 . /etc/profile
 
-# apt sources
-#printf '%s\n' "deb $deb_mirror $codename $deb_comp" > /etc/apt/sources.list
-#case "$debian_suite" in
-#    (stable|testing) printf '%s\n' "deb $deb_mirror ${codename}-updates $deb_comp" "deb $deb_sec_mirror ${codename}-security $deb_comp" >> /etc/apt/sources.list ;;
-#esac
-
 # new apt sources
 mkdir -p /etc/apt/sources.list.d/
 cat <<EOFSRC > /etc/apt/sources.list.d/debian.sources
@@ -203,7 +197,6 @@ Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOFSRCSEC
 ;;
 esac
-
 if [ -f /etc/apt/sources.list ] ; then mv /etc/apt/sources.list /etc/apt/sources.list.bak ; fi
 
 mkdir -p /etc/apt/apt.conf.d
