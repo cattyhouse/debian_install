@@ -151,17 +151,17 @@ chroot_mount_misc () (
     }
 
     # ref : https://github.com/archlinux/arch-install-scripts/blob/master/common
-    do_mount proc proc -t proc
-    do_mount sys sys -t sysfs
+    do_mount -t proc proc proc
+    do_mount -t sysfs sys sys
     if [ "$is_efi" = "y" ] ; then
         mkdir -p sys/firmware/efi/efivars
-        do_mount efivarfs sys/firmware/efi/efivars -t efivarfs
+        do_mount -t efivarfs efivarfs sys/firmware/efi/efivars
     fi
-    do_mount udev dev -t devtmpfs
-    do_mount devpts dev/pts -t devpts
-    do_mount shm dev/shm -t tmpfs
-    do_mount /run run --bind --make-private
-    do_mount tmp tmp -t tmpfs
+    do_mount -t devtmpfs udev dev
+    do_mount -t devpts devpts dev/pts
+    do_mount -t tmpfs shm dev/shm
+    do_mount --bind --make-private /run run
+    do_mount -t tmpfs tmp tmp
 )
 
 set_chroot () {
