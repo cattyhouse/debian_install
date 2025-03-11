@@ -339,39 +339,11 @@ cat <<EOFSYSCTL > /etc/sysctl.d/99.zzz.conf
 # tcp forwarding
 net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1
-
-# tcp mem
-#net.core.rmem_default = 1048576
-#net.core.wmem_default = 1048576
-#net.core.rmem_max = 16777216
-#net.core.wmem_max = 16777216
-#net.core.optmem_max = 65536
-#net.ipv4.tcp_rmem = 4096 1048576 2097152
-#net.ipv4.tcp_wmem = 4096 65536 16777216
-
-# tcp connection
-#net.ipv4.tcp_max_syn_backlog = 8192
-#net.core.netdev_max_backlog = 16384
-#net.core.somaxconn = 8192
-# 0x1 0x2 0x400
-#net.ipv4.tcp_fastopen = 1027
-#net.ipv4.tcp_tw_reuse = 1
-#net.ipv4.tcp_slow_start_after_idle = 0
-#net.ipv4.tcp_mtu_probing = 1
-
-# tcp keepalive
-#net.ipv4.tcp_keepalive_time = 300
-#net.ipv4.tcp_keepalive_intvl = 12
-#net.ipv4.tcp_keepalive_probes = 6
 # bbr
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
-
-#net.ipv4.ip_local_port_range = 20000 65535
 # increase nofile on debian, alpine, void
 fs.nr_open = 1073741816
-#fs.file-max = 9223372036854775807
-#fs.file-nr = 832        0       9223372036854775807
 EOFSYSCTL
 
 # link fd, bat
@@ -391,28 +363,6 @@ if [ "$is_efi" = "y" ]; then
 else
     curl -sfL -o /boot/netboot.xyz.lkrn \${xyz_url}.lkrn
 fi
-
-# grub
-cp -a /etc/default/grub /etc/default/grub.\$(dpkg-query -W -f '\${Version}' grub2-common)
-cat <<EOFGRUB > /etc/default/grub
-GRUB_DEFAULT=0
-GRUB_DISTRIBUTOR="Debian"
-GRUB_TIMEOUT=1
-GRUB_CMDLINE_LINUX_DEFAULT="quiet zswap.enabled=0 nomodeset"
-GRUB_DISABLE_SUBMENU=y
-GRUB_DISABLE_RECOVERY=true
-GRUB_DISABLE_OS_PROBER=true
-GRUB_TERMINAL_OUTPUT=console
-GRUB_TERMINAL_INPUT=console
-GRUB_PRELOAD_MODULES="linux part_gpt part_msdos"
-EOFGRUB
-
-# grub color
-# https://wiki.debian.org/GRUB2?action=show&redirect=Grub2#Configure_console_menu_colors
-cat <<EOFGRUBCOLOR > /boot/grub/custom.cfg
-set menu_color_normal=white/black
-set menu_color_highlight=red/black
-EOFGRUBCOLOR
 
 # install grub to also removable place : EFI/BOOT
 # https://wiki.debian.org/GrubEFIReinstall
@@ -442,7 +392,31 @@ else
     apt-get install -y linux-image-$host_arch
 fi
 
-# generate grub.cfg
+# GRUB configuration
+
+# grub color
+# https://wiki.debian.org/GRUB2?action=show&redirect=Grub2#Configure_console_menu_colors
+cat <<EOFGRUBCOLOR > /boot/grub/custom.cfg
+set menu_color_normal=white/black
+set menu_color_highlight=red/black
+EOFGRUBCOLOR
+
+# default grub
+mv /etc/default/grub /etc/default/grub.bak
+cat <<EOFGRUB > /etc/default/grub
+GRUB_DEFAULT=0
+GRUB_DISTRIBUTOR="Debian"
+GRUB_TIMEOUT=1
+GRUB_CMDLINE_LINUX_DEFAULT="quiet zswap.enabled=0 nomodeset"
+GRUB_DISABLE_SUBMENU=y
+GRUB_DISABLE_RECOVERY=true
+GRUB_DISABLE_OS_PROBER=true
+GRUB_TERMINAL_OUTPUT=console
+GRUB_TERMINAL_INPUT=console
+GRUB_PRELOAD_MODULES="linux part_gpt part_msdos"
+EOFGRUB
+
+# update grub.cfg
 update-grub2
 
 # disable services
