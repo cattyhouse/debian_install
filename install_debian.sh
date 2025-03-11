@@ -171,6 +171,8 @@ chroot "$mount_point" /bin/sh -s <<EOFCHROOT
 
 # new apt sources
 mkdir -p /etc/apt/sources.list.d/
+case "$debian_suite" in
+(unstable)
 cat <<EOFSRC > /etc/apt/sources.list.d/debian.sources
 Types: deb
 URIs: $deb_mirror
@@ -178,14 +180,14 @@ Suites: $codename
 Components: $deb_comp
 Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOFSRC
+;;
 
-case "$debian_suite" in
 (stable|testing)
-cat <<EOFSRCSEC >> /etc/apt/sources.list.d/debian.sources
+cat <<EOFSRCSEC > /etc/apt/sources.list.d/debian.sources
 
 Types: deb
 URIs: $deb_mirror
-Suites: ${codename}-updates
+Suites: $codename ${codename}-updates
 Components: $deb_comp
 Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 
