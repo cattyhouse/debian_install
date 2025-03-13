@@ -293,11 +293,9 @@ EOFINSTALLTIMER
 # zstd on zram 
 case "$pkgs" in
 (*systemd-zram-generator*)
-cat <<EOFZRAM > /etc/systemd/zram-generator.conf
-[zram0]
-zram-size = ram / 2
-compression-algorithm = zstd
-EOFZRAM
+rm -f /etc/systemd/zram-generator.conf
+mkdir -p /etc/systemd/zram-generator.conf.d
+printf '%s\n' "[zram0]" "zram-size = ram / 2" "compression-algorithm = zstd" > /etc/systemd/zram-generator.conf.d/zram0.conf
 ;;
 esac
 
