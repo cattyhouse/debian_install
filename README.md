@@ -11,7 +11,7 @@ posix shell script to install debian in one go
 - filesystem : ext4/btrfs
 - bootloader : grub
 - hardware: virtual machine/real hardware
-- debian verison: bookworm (current stable), trixie (current testing)
+- tested debian verison: bookworm (current stable), trixie (current testing)
 
 # sane defaults
 - just a base system with common commandline tools. GUI can be installed via apt afterwards
@@ -32,8 +32,8 @@ posix shell script to install debian in one go
 - grub menu color adjusted to red/black (highlight), white/black (normal)
 - initramfs set to dep for smaller size, compressed with zstd
 - linux-image-cloud kernel for virtual machine for smaller size
-- btrfs-scrub timer enabled
-- btrfs compress with zstd with level 1 for speed
+- ~~btrfs-scrub timer enabled~~
+- ~~btrfs compress with zstd with level 1 for speed~~
 
 # usage
 
@@ -47,22 +47,21 @@ posix shell script to install debian in one go
 
 - debdiff : compare the new conf with old conf and call vim to merge
 ```sh
-debdiff () {
-    # fd 3 is used to get rid of "Vim: Warning: Input is not from a terminal"
-    while read -u 3 -r -d '' ; do
-        vim -d "$REPLY" "${REPLY%.*}"
-        rm -i "$REPLY"
-    done 3< <(find /etc/ -regextype posix-extended -iregex ".+\.(dpkg-|ucf-).+" -print0)
+debdiff ()
+{
+    find /etc \( -name '*.dpkg-old' -o -name '*.ucf-old' \) -delete;
+    while read -u 3 -r -d ''; do
+        vim -d "$REPLY" "${REPLY%.*}";
+        rm -i "$REPLY";
+    done 3< <(find /etc \( -name '*.dpkg-*' -o -name '*.ucf-*' \) -print0)
 }
 ```
 - aptu : upgrade
 
 ```sh
 aptu () {
-    local ignore_hold=
-    [ "$1" = "-a" ] && ignore_hold="--ignore-hold"
     apt-get update &&
-    apt-get -y $ignore_hold dist-upgrade &&
+    apt-get -y dist-upgrade &&
     apt-get -y autopurge &&
     apt-get clean
     debdiff
@@ -97,26 +96,6 @@ dpkglistpkgs () {
 dpkglistpkgsbysize () {
     dpkg-query --show -f '${Package}\t${Installed-Size}KB\n' | sort -nr -k2 |
     awk '{ print $1,"\033[32m"$2"\033[0m" }' | less
-}
-```
-
-
-- aptrmoldkernel : remove old kernels
-
-```sh
-aptrmoldkernel () {
-    local running latest _kernel _header
-    running=$(uname -r)
-    latest=$(realpath /vmlinuz) ; latest=${latest#*-}
-    _kernel=$(dpkg-query --show | grep -E 'linux-image-[0-9]+\.[0-9]+' | grep -v -E "$running|$latest" | awk '{ print $1 }')
-    _header=$(dpkg-query --show | grep -E 'linux-headers-[0-9]+\.[0-9]+' | grep -v -E "$running|$latest" | awk '{ print $1 }')
-    if [ -z "$_kernel" ] && [ -z "$_header" ] ; then
-        echo "nothing to remove"
-        echo "running kernel : $running"
-        echo "latest kernel  : $latest"
-    else
-        apt-get purge $_kernel $_header
-    fi
 }
 ```
 
