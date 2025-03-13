@@ -210,7 +210,8 @@ APT::Install-Suggests "0";
 EOFAPT
 
 # dpkg.cfg, in case dist-upgrade needs it
-printf '%s\n' "force-confold" "force-confmiss" >> /etc/dpkg/dpkg.cfg
+mkdir -p /etc/dpkg/dpkg.cfg.d
+printf '%s\n' "force-confold" "force-confmiss" > /etc/dpkg/dpkg.cfg.d/confold-confmiss
 
 # update sources
 apt-get update
