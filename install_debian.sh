@@ -290,6 +290,17 @@ OnCalendar=07,19:00
 RandomizedDelaySec=1h
 EOFINSTALLTIMER
 
+# zstd on zram 
+case "$pkgs" in
+(*systemd-zram-generator*)
+cat <<EOFZRAM > /etc/systemd/zram-generator.conf
+[zram0]
+zram-size = ram / 2
+compression-algorithm = zstd
+EOFZRAM
+;;
+esac
+
 # locale
 # based on code in dpkg-query --control-show locales config
 printf '%s\n' 'en_US.UTF-8 UTF-8' 'C.UTF-8 UTF-8' > /etc/locale.gen
