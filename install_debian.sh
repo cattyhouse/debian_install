@@ -205,8 +205,10 @@ fi
 
 mkdir -p /etc/apt/apt.conf.d
 cat <<EOFAPT > /etc/apt/apt.conf.d/99-no-recommends
-APT::Install-Recommends "0";
-APT::Install-Suggests "0";
+APT {
+    Install-Recommends "false";
+    Install-Suggests "false";
+};
 EOFAPT
 
 # dpkg.cfg, in case dist-upgrade needs it
@@ -261,14 +263,22 @@ update-alternatives --set editor /usr/bin/vim.basic
 # unattended-upgrades custom
 case "$pkgs" in
 (*unattended-upgrades*)
-printf '%s\n' \
-'Unattended-Upgrade::OnlyOnACPower "false";' \
-'Unattended-Upgrade::Skip-Updates-On-Metered-Connections "false";' \
-'APT::Periodic::Update-Package-Lists "always";' \
-'APT::Periodic::Unattended-Upgrade "always";' \
-'APT::Periodic::CleanInterval "always";' \
-'Unattended-Upgrade::Origins-Pattern:: "origin=Debian,codename=\${distro_codename}-updates,label=Debian";' \
-> /etc/apt/apt.conf.d/99unattended-upgrades-custom
+cat <<EOFUNATT > /etc/apt/apt.conf.d/99unattended-upgrades-custom
+Unattended-Upgrade {
+    OnlyOnACPower "false";
+    Skip-Updates-On-Metered-Connections "false";
+    // Origins-Pattern is a list, man apt.conf: Multiple entries can be included, separated by a semicolon
+    Origins-Pattern {"origin=Debian,codename=\${distro_codename}-updates";};
+};
+
+APT {
+    Periodic {
+        Update-Package-Lists "always";
+        Unattended-Upgrade "always";
+        CleanInterval "always";
+    };
+};
+EOFUNATT
 
 # fix warning of /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
 apt-get install -y python3-gi
