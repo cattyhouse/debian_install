@@ -20,7 +20,8 @@ set_var () {
     ssh_pub='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBJLSxzI5IVEHV7NXo7k2arm3fo756ouGNSywQbx1IOk' # generate by ssh-keygen or get existing one from: head -n1 ~/.ssh/authorized_keys
     debian_suite="stable" # one of : stable testing unstable
     timezone="Asia/Shanghai"
-    pkgs="apt-file bat bc ca-certificates cron curl fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync dbus dbus-user-session systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree vim whiptail wireguard-tools zstd" # select preinstalled packages, dbus dbus-user-session is needed for reboot/sshd to work properly
+    pkgs="ca-certificates cron curl dbus dbus-user-session init initramfs-tools iproute2 iputils-ping less locales logrotate ncurses-term needrestart procps psmisc rsync ssh systemd systemd-sysv systemd-timesyncd tmux vim whiptail zstd" # must have
+    pkgs="apt-file bat bc fd-find fdisk file ipset iptables jq man-db manpages manpages-dev ncdu systemd-zram-generator tree wireguard-tools $pkgs" # optional
     mount_point="/mnt/debian_c7bN4b"
 
     #### TODO IMPORTANT VARIABLE ####
