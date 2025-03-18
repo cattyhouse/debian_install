@@ -20,7 +20,6 @@ set_var () {
     ssh_pub='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBJLSxzI5IVEHV7NXo7k2arm3fo756ouGNSywQbx1IOk' # generate by ssh-keygen or get existing one from: head -n1 ~/.ssh/authorized_keys
     debian_suite="stable" # one of : stable testing unstable
     timezone="Asia/Shanghai"
-    unattended_upgrades="yes" # if yes, will enable unattended-upgrades on stable/testing
     pkgs="apt-file bat bc ca-certificates cron curl fdisk fd-find file init initramfs-tools iproute2 ipset iptables iputils-ping jq less locales logrotate man-db manpages manpages-dev ncdu ncurses-term needrestart ssh procps psmisc rsync dbus dbus-user-session systemd systemd-sysv systemd-timesyncd systemd-zram-generator tmux tree vim whiptail wireguard-tools zstd" # select preinstalled packages, dbus dbus-user-session is needed for reboot/sshd to work properly
     mount_point="/mnt/debian_c7bN4b"
 
@@ -34,8 +33,7 @@ set_var () {
     esac
     
     case "$debian_suite" in
-        (unstable) : ;;
-        (stable|testing) if [ "$unattended_upgrades" = yes ] ; then pkgs="$pkgs unattended-upgrades" ; fi ;;
+        (unstable|stable|testing) : ;;
         (*) die "debian_suite must be one of : stable testing unstable" ;;
     esac
 
@@ -260,47 +258,6 @@ printf '%s\n' "$hostname" > /etc/hostname
 # alternatives
 update-alternatives --set editor /usr/bin/vim.basic
 
-# unattended-upgrades custom
-case "$pkgs" in
-(*unattended-upgrades*)
-cat <<EOFUNATT > /etc/apt/apt.conf.d/99unattended-upgrades-custom
-Unattended-Upgrade {
-    OnlyOnACPower "false";
-    Skip-Updates-On-Metered-Connections "false";
-    // Origins-Pattern is a list, man apt.conf: Multiple entries can be included, separated by a semicolon
-    Origins-Pattern {"origin=Debian,codename=\${distro_codename}-updates";};
-};
-
-APT {
-    Periodic {
-        Update-Package-Lists "always";
-        Unattended-Upgrade "always";
-        CleanInterval "always";
-    };
-};
-EOFUNATT
-
-# fix warning of /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
-apt-get install -y python3-gi
-;;
-esac
-
-# download timer, this timer is installed by apt, do it anyways
-cat <<EOFDOWNTIMER | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-daily.timer.d/override.conf
-[Timer]
-OnCalendar=
-OnCalendar=06,18:00
-RandomizedDelaySec=1h
-EOFDOWNTIMER
-
-# install timer, this timer is installed by apt, do it anyways
-cat <<EOFINSTALLTIMER | install -D -m 0644 /dev/stdin /etc/systemd/system/apt-daily-upgrade.timer.d/override.conf
-[Timer]
-OnCalendar=
-OnCalendar=07,19:00
-RandomizedDelaySec=1h
-EOFINSTALLTIMER
-
 # zstd on zram 
 case "$pkgs" in
 (*systemd-zram-generator*)
@@ -429,7 +386,7 @@ EOFGRUB
 update-grub2
 
 # disable services
-systemctl disable rsync.service
+systemctl disable rsync.service apt-daily-upgrade.timer apt-daily.timer
 
 # enable services
 systemctl enable ssh systemd-networkd systemd-timesyncd
