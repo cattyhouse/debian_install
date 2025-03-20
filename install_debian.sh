@@ -271,7 +271,8 @@ esac
 # locale
 # based on code in dpkg-query --control-show locales config
 printf '%s\n' 'en_US.UTF-8 UTF-8' 'C.UTF-8 UTF-8' > /etc/locale.gen
-printf '%s\n' 'LANG=C.UTF-8' > /etc/default/locale
+printf '%s\n' 'LANG=C.UTF-8' > /etc/locale.conf # new location since debian 13
+printf '%s\n' 'LANG=C.UTF-8' > /etc/default/locale # legacy location to debian 12
 dpkg-reconfigure locales
 
 # timezone
