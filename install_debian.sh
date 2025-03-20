@@ -388,7 +388,7 @@ EOFGRUB
 update-grub2
 
 # disable services
-systemctl disable rsync.service apt-daily-upgrade.timer apt-daily.timer e2scrub_all.timer
+systemctl disable rsync.service apt-daily-upgrade.timer apt-daily.timer e2scrub_all.timer e2scrub_reap.service
 
 # enable services
 systemctl enable ssh systemd-networkd systemd-timesyncd
