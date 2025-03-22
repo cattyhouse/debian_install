@@ -452,11 +452,12 @@ fix_alpine () {
 
 fix_clock () {
     # some distro, alpine virt for instance, clock is not synced on boot
+    # but if the RTC time is wrong, this causes problems
     hwclock -s >/dev/null 2>&1 || true
 }
 
 check_network () {
-    curl --connect-timeout 5 -m 10 -sfI $deb_mirror >/dev/null 2>&1 || die "please check your network"
+    curl --connect-timeout 5 -m 10 -sfI $deb_mirror >/dev/null 2>&1 || die "failed to do network test with curl $deb_mirror, possible causes:" "clock(fix it if wrong): $(date)" "network: please check ip r and ip a" "dns: please check /etc/resolve.conf"
 }
 
 # real job
@@ -468,7 +469,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 check_root
 check_cmd $deps
-fix_clock
+#fix_clock
 check_network
 fix_alpine
 set_var
