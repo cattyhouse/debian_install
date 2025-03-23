@@ -12,6 +12,7 @@ set_var () {
     is_vm="yes" # set to "yes" will install cloud kernel
     hostname="debian"
     dev="/dev/vda" # which drive to install to, use lsblk to find it
+    tcp_bbr="yes" # yes or no. suggest: yes on remote server. no on low performance LAN box
     rootfs="ext4" # btrfs or ext4
     autodns="no" # if yes, then install and enable systemd-resolved. if no, then use 119.29.29.29 for china, 1.1.1.1 for others
     dns="1.1.1.1" # dns to use when autodns=no
@@ -307,9 +308,7 @@ cat <<EOFSYSCTL > /etc/sysctl.d/99.zzz.conf
 # tcp forwarding
 net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1
-# bbr
-net.core.default_qdisc = fq
-net.ipv4.tcp_congestion_control = bbr
+$(if [ "$tcp_bbr" = yes ] ; then printf '%s\n' "# bbr" "net.core.default_qdisc = fq" "net.ipv4.tcp_congestion_control = bbr" ; fi)
 # increase nofile on debian, alpine, void
 fs.nr_open = 1073741816
 EOFSYSCTL
