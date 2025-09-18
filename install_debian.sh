@@ -399,7 +399,7 @@ case "$pkgs" in (*apt-file*) apt-file update ;; esac
 cat <<EOFREBOOT | install -D -m 755 /dev/stdin /etc/kernel/postinst.d/zz-reboot-required
 #!/bin/sh
 touch /run/reboot-required
-echo "\$1" >> /run/reboot-required.pkgs
+echo "\\\$1" >> /run/reboot-required.pkgs
 EOFREBOOT
 
 # TODO MUST BE LAST OPERATION
