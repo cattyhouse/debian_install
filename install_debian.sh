@@ -396,10 +396,10 @@ systemctl enable ssh systemd-networkd systemd-timesyncd
 case "$pkgs" in (*apt-file*) apt-file update ;; esac
 
 # insert /run/reboot-required for kernel installation
-cat <<EOFREBOOT | install -D -m 755 /dev/stdin /etc/kernel/postinst.d/zz-reboot-required
+cat <<'EOFREBOOT' | install -D -m 755 /dev/stdin /etc/kernel/postinst.d/zz-reboot-required
 #!/bin/sh
 touch /run/reboot-required
-echo "\\\$1" >> /run/reboot-required.pkgs
+echo "\$1" >> /run/reboot-required.pkgs
 EOFREBOOT
 
 # TODO MUST BE LAST OPERATION
