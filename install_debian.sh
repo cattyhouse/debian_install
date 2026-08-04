@@ -419,6 +419,9 @@ fi
 
 # clean cache
 apt-get clean
+
+# trim disk
+fstrim -av || true
 EOFCHROOT
 }
 
@@ -441,7 +444,6 @@ die () { printf '\033[31mERR: \033[0m%s\n' "$@" ; exit 1 ; }
 
 cleanup () {
     sync
-    fstrim -av || true
 }
 
 check_root () {
