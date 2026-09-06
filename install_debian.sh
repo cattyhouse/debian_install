@@ -125,7 +125,21 @@ set_mount () {
     fi
 }
 
+set_wgetrc () {
+export WGETRC="/tmp/debootstrap-wgetrc"
+cat <<WGETRC > "$WGETRC"
+tries = 20
+timeout = 20
+waitretry = 10
+retry_connrefused = on
+retry_on_host_error = on
+retry_on_http_error = 503,504,408,429
+continue = on
+WGETRC
+}
+
 set_rootfs () {
+    set_wgetrc
     # prepare debootstrap
     ds_dir=$(mktemp -d) || die "failed to create debootstrap dir"
     curl -sfL 'https://salsa.debian.org/installer-team/debootstrap/-/archive/master/debootstrap-master.tar' |
