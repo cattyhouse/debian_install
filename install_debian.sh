@@ -225,6 +225,12 @@ APT {
 };
 EOFAPT
 
+cat <<EOFTIME > /etc/apt/apt.conf.d/99-retry-timeout
+Acquire::http::Timeout "10";
+Acquire::https::Timeout "10";
+Acquire::Retries "3";
+EOFTIME
+
 # dpkg.cfg, in case dist-upgrade needs it
 mkdir -p /etc/dpkg/dpkg.cfg.d
 printf '%s\n' "force-confold" "force-confmiss" > /etc/dpkg/dpkg.cfg.d/confold-confmiss
