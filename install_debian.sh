@@ -319,18 +319,27 @@ printf '%s\n' 'root:$pw' | chpasswd -e
 # disable motd from debian
 sed -i -e '/pam_motd.so/ s|^|#|' /etc/pam.d/login /etc/pam.d/sshd
 
-# disable deprecated user_readenv (man pam_env)
-sed -i '/pam_env.so/ s|user_readenv=1|user_readenv=0|' /etc/pam.d/sshd
-
 # sysctl
 mkdir -p /etc/sysctl.d
 cat <<EOFSYSCTL > /etc/sysctl.d/99.zzz.conf
 # tcp forwarding
 net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1
+# udp mem
+net.core.rmem_default = 1048576
+net.core.wmem_default = 1048576
+net.core.rmem_max = 4194304
+net.core.wmem_max = 4194304
+
+# tcp connection
+net.ipv4.tcp_max_syn_backlog = 65535
+net.core.netdev_max_backlog = 65535
+net.core.somaxconn = 65535
+net.ipv4.tcp_slow_start_after_idle = 0
+net.ipv4.tcp_mtu_probing = 1
 $(if [ "$tcp_bbr" = yes ] ; then printf '%s\n' "# bbr" "net.core.default_qdisc = fq" "net.ipv4.tcp_congestion_control = bbr" ; fi)
-# increase nofile on debian, alpine, void
-fs.nr_open = 1073741816
+# increase nofile to 32M : 1024 * 1024 * 32
+fs.nr_open = 33554432
 EOFSYSCTL
 
 # link fd, bat
